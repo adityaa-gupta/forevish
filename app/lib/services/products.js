@@ -198,20 +198,38 @@ export const getAllProducts = async () => {
 };
 
 // Get a single product by ID
+// Get a single product by ID
 export const getProductById = async (productId) => {
+  console.log("Fetching product by ID:", productId);
+  console.log("Product ID type:", typeof productId);
+  console.log("Collection name:", COLLECTION_NAME);
+
   try {
+    // Ensure productId is a string and not empty
+    if (!productId || typeof productId !== "string") {
+      throw new Error("Invalid product ID provided");
+    }
+
     const docRef = doc(db, COLLECTION_NAME, productId);
+    console.log("Document reference created:", docRef.path);
+
     const docSnap = await getDoc(docRef);
+    console.log("Document snapshot exists:", docSnap.exists());
 
     if (docSnap.exists()) {
+      const productData = {
+        id: docSnap.id,
+        ...docSnap.data(),
+      };
+
+      console.log("Product data retrieved:", productData);
+
       return {
         success: true,
-        data: {
-          id: docSnap.id,
-          ...docSnap.data(),
-        },
+        data: productData,
       };
     } else {
+      console.log("Document does not exist for ID:", productId);
       return {
         success: false,
         error: "Product not found",
@@ -219,6 +237,12 @@ export const getProductById = async (productId) => {
     }
   } catch (error) {
     console.error("Error fetching product:", error);
+    console.error("Error details:", {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+    });
+
     return {
       success: false,
       error: error.message,
@@ -227,11 +251,76 @@ export const getProductById = async (productId) => {
 };
 
 // Update a product
+
+// ...existing code...
+
+// Update a product with image handling
 export const updateProduct = async (productId, updateData) => {
   try {
+    // Process main images
+    if (updateData.mainImages) {
+      const existingImages = updateData.mainImages.filter(
+        (img) => typeof img === "string"
+      );
+      const newImages = updateData.mainImages.filter(
+        (img) => img instanceof File
+      );
+
+      let newImageUrls = [];
+      if (newImages.length > 0) {
+        newImageUrls = await uploadImages(newImages, "product-images/main");
+      }
+
+      updateData.mainImages = [...existingImages, ...newImageUrls];
+    }
+
+    // Process variant images
+    if (updateData.variants) {
+      updateData.variants = await Promise.all(
+        updateData.variants.map(async (variant) => {
+          const processedColors = await Promise.all(
+            variant.colors.map(async (color) => {
+              if (color.images) {
+                const existingImages = color.images.filter(
+                  (img) => typeof img === "string"
+                );
+                const newImages = color.images.filter(
+                  (img) => img instanceof File
+                );
+
+                let newImageUrls = [];
+                if (newImages.length > 0) {
+                  newImageUrls = await uploadImages(
+                    newImages,
+                    `product-images/colors/${color.color.toLowerCase()}`
+                  );
+                }
+
+                return {
+                  ...color,
+                  stock: parseInt(color.stock),
+                  images: [...existingImages, ...newImageUrls],
+                };
+              }
+              return {
+                ...color,
+                stock: parseInt(color.stock),
+              };
+            })
+          );
+
+          return {
+            ...variant,
+            colors: processedColors,
+          };
+        })
+      );
+    }
+
     const docRef = doc(db, COLLECTION_NAME, productId);
     await updateDoc(docRef, {
       ...updateData,
+      price: parseFloat(updateData.price),
       updatedAt: serverTimestamp(),
     });
 
@@ -248,6 +337,7 @@ export const updateProduct = async (productId, updateData) => {
   }
 };
 
+// ...rest of existing code...
 // Delete a product (with image cleanup)
 export const deleteProduct = async (productId) => {
   try {
