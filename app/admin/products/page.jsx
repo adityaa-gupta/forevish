@@ -230,12 +230,13 @@ export default function ProductsPage() {
             }}
           >
             <div className="py-1">
-              <button
+              <Link
+                href={`/admin/products/view/${activeDropdown}`}
                 onClick={(e) => handleAction("view", activeDropdown, e)}
                 className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
                 <FiEye className="w-4 h-4 mr-3" /> View Details
-              </button>
+              </Link>
               <Link
                 href={`/admin/products/edit/${activeDropdown}`}
                 onClick={(e) => handleAction("edit", activeDropdown, e)}
