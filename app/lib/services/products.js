@@ -98,44 +98,119 @@ const deleteImages = async (imageUrls) => {
 };
 
 // Create a new product
+// export const createProduct = async (productData) => {
+//   console.log("Creating product with data:", productData);
+//   try {
+//     // Upload main images
+//     let mainImageUrls = [];
+//     if (productData.mainImages && productData.mainImages.length > 0) {
+//       mainImageUrls = await uploadImages(
+//         productData.mainImages,
+//         "product-images/main" // This will be stored in forevish bucket
+//       );
+//     }
+
+//     // Process variants and upload color-specific images
+//     const processedVariants = await Promise.all(
+//       productData.variants.map(async (variant) => {
+//         const processedColors = await Promise.all(
+//           variant.colors.map(async (color) => {
+//             let colorImageUrls = [];
+//             if (color.images && color.images.length > 0) {
+//               colorImageUrls = await uploadImages(
+//                 color.images,
+//                 `product-images/colors/${color.color.toLowerCase()}`
+//               );
+//             }
+
+//             return {
+//               color: color.color,
+//               stock: parseInt(color.stock),
+//               images: colorImageUrls,
+//             };
+//           })
+//         );
+
+//         return {
+//           size: variant.size,
+//           colors: processedColors,
+//         };
+//       })
+//     );
+
+//     // Create the product document
+//     const productDocument = {
+//       name: productData.name,
+//       description: productData.description,
+//       category: productData.category,
+//       price: parseFloat(productData.price),
+//       mainImages: mainImageUrls,
+//       variants: processedVariants,
+//       isActive: true,
+//       createdAt: serverTimestamp(),
+//       updatedAt: serverTimestamp(),
+//     };
+
+//     console.log("Creating product with data:", productDocument);
+
+//     const docRef = await addDoc(
+//       collection(db, COLLECTION_NAME),
+//       productDocument
+//     );
+
+//     return {
+//       success: true,
+//       id: docRef.id,
+//       message: "Product created successfully",
+//     };
+//   } catch (error) {
+//     console.error("Error creating product:", error);
+//     return {
+//       success: false,
+//       error: error.message,
+//     };
+//   }
+// };
 export const createProduct = async (productData) => {
+  console.log("Creating product with data:", productData);
   try {
     // Upload main images
     let mainImageUrls = [];
     if (productData.mainImages && productData.mainImages.length > 0) {
       mainImageUrls = await uploadImages(
         productData.mainImages,
-        "product-images/main" // This will be stored in forevish bucket
+        "product-images/main"
       );
     }
 
-    // Process variants and upload color-specific images
-    const processedVariants = await Promise.all(
-      productData.variants.map(async (variant) => {
-        const processedColors = await Promise.all(
-          variant.colors.map(async (color) => {
-            let colorImageUrls = [];
-            if (color.images && color.images.length > 0) {
-              colorImageUrls = await uploadImages(
-                color.images,
-                `product-images/colors/${color.color.toLowerCase()}`
-              );
-            }
+    // Upload all color images once and map them by color name
+    const colorImageMap = {};
+    if (productData.colors && productData.colors.length > 0) {
+      for (const colorObj of productData.colors) {
+        let colorImageUrls = [];
+        if (colorObj.images && colorObj.images.length > 0) {
+          colorImageUrls = await uploadImages(
+            colorObj.images,
+            `product-images/colors/${colorObj.color.toLowerCase()}`
+          );
+        }
+        colorImageMap[colorObj.color] = colorImageUrls;
+      }
+    }
 
-            return {
-              color: color.color,
-              stock: parseInt(color.stock),
-              images: colorImageUrls,
-            };
-          })
-        );
+    // Build variants array from sizes + colorStock
+    const processedVariants = productData.sizes.map((sizeObj) => {
+      const processedColors = sizeObj.colorStock.map((cs) => ({
+        color: cs.color,
+        stock: parseInt(cs.stock),
+        images: colorImageMap[cs.color] || [],
+      }));
 
-        return {
-          size: variant.size,
-          colors: processedColors,
-        };
-      })
-    );
+      return {
+        size: sizeObj.size,
+        colors: processedColors,
+      };
+    });
 
     // Create the product document
     const productDocument = {
@@ -150,7 +225,7 @@ export const createProduct = async (productData) => {
       updatedAt: serverTimestamp(),
     };
 
-    console.log("Creating product with data:", productDocument);
+    console.log("Final product document:", productDocument);
 
     const docRef = await addDoc(
       collection(db, COLLECTION_NAME),
@@ -255,74 +330,169 @@ export const getProductById = async (productId) => {
 // ...existing code...
 
 // Update a product with image handling
+// export const updateProduct = async (productId, updateData) => {
+//   try {
+//     // Process main images
+//     if (updateData.mainImages) {
+//       const existingImages = updateData.mainImages.filter(
+//         (img) => typeof img === "string"
+//       );
+//       const newImages = updateData.mainImages.filter(
+//         (img) => img instanceof File
+//       );
+
+//       let newImageUrls = [];
+//       if (newImages.length > 0) {
+//         newImageUrls = await uploadImages(newImages, "product-images/main");
+//       }
+
+//       updateData.mainImages = [...existingImages, ...newImageUrls];
+//     }
+
+//     // Process variant images
+//     if (updateData.variants) {
+//       updateData.variants = await Promise.all(
+//         updateData.variants.map(async (variant) => {
+//           const processedColors = await Promise.all(
+//             variant.colors.map(async (color) => {
+//               if (color.images) {
+//                 const existingImages = color.images.filter(
+//                   (img) => typeof img === "string"
+//                 );
+//                 const newImages = color.images.filter(
+//                   (img) => img instanceof File
+//                 );
+
+//                 let newImageUrls = [];
+//                 if (newImages.length > 0) {
+//                   newImageUrls = await uploadImages(
+//                     newImages,
+//                     `product-images/colors/${color.color.toLowerCase()}`
+//                   );
+//                 }
+
+//                 return {
+//                   ...color,
+//                   stock: parseInt(color.stock),
+//                   images: [...existingImages, ...newImageUrls],
+//                 };
+//               }
+//               return {
+//                 ...color,
+//                 stock: parseInt(color.stock),
+//               };
+//             })
+//           );
+
+//           return {
+//             ...variant,
+//             colors: processedColors,
+//           };
+//         })
+//       );
+//     }
+
+//     const docRef = doc(db, COLLECTION_NAME, productId);
+//     await updateDoc(docRef, {
+//       ...updateData,
+//       price: parseFloat(updateData.price),
+//       updatedAt: serverTimestamp(),
+//     });
+
+//     return {
+//       success: true,
+//       message: "Product updated successfully",
+//     };
+//   } catch (error) {
+//     console.error("Error updating product:", error);
+//     return {
+//       success: false,
+//       error: error.message,
+//     };
+//   }
+// };
 export const updateProduct = async (productId, updateData) => {
   try {
-    // Process main images
+    // === Handle Main Images ===
     if (updateData.mainImages) {
-      const existingImages = updateData.mainImages.filter(
+      const existingMainImages = updateData.mainImages.filter(
         (img) => typeof img === "string"
       );
-      const newImages = updateData.mainImages.filter(
+      const newMainImages = updateData.mainImages.filter(
         (img) => img instanceof File
       );
 
-      let newImageUrls = [];
-      if (newImages.length > 0) {
-        newImageUrls = await uploadImages(newImages, "product-images/main");
+      let newMainImageUrls = [];
+      if (newMainImages.length > 0) {
+        newMainImageUrls = await uploadImages(
+          newMainImages,
+          "product-images/main"
+        );
       }
 
-      updateData.mainImages = [...existingImages, ...newImageUrls];
+      updateData.mainImages = [...existingMainImages, ...newMainImageUrls];
     }
 
-    // Process variant images
-    if (updateData.variants) {
-      updateData.variants = await Promise.all(
-        updateData.variants.map(async (variant) => {
-          const processedColors = await Promise.all(
-            variant.colors.map(async (color) => {
-              if (color.images) {
-                const existingImages = color.images.filter(
-                  (img) => typeof img === "string"
-                );
-                const newImages = color.images.filter(
-                  (img) => img instanceof File
-                );
+    // === Handle Colors and Their Images ===
+    const colorImageMap = {};
+    if (updateData.colors && updateData.colors.length > 0) {
+      for (const colorObj of updateData.colors) {
+        let existingColorImages = [];
+        let newColorImages = [];
 
-                let newImageUrls = [];
-                if (newImages.length > 0) {
-                  newImageUrls = await uploadImages(
-                    newImages,
-                    `product-images/colors/${color.color.toLowerCase()}`
-                  );
-                }
-
-                return {
-                  ...color,
-                  stock: parseInt(color.stock),
-                  images: [...existingImages, ...newImageUrls],
-                };
-              }
-              return {
-                ...color,
-                stock: parseInt(color.stock),
-              };
-            })
+        if (colorObj.images && colorObj.images.length > 0) {
+          existingColorImages = colorObj.images.filter(
+            (img) => typeof img === "string"
           );
+          newColorImages = colorObj.images.filter((img) => img instanceof File);
+        }
 
-          return {
-            ...variant,
-            colors: processedColors,
-          };
-        })
-      );
+        let newColorImageUrls = [];
+        if (newColorImages.length > 0) {
+          newColorImageUrls = await uploadImages(
+            newColorImages,
+            `product-images/colors/${colorObj.color.toLowerCase()}`
+          );
+        }
+
+        // Save updated image list for this color
+        const finalImages = [...existingColorImages, ...newColorImageUrls];
+        colorImageMap[colorObj.color] = finalImages;
+      }
     }
 
-    const docRef = doc(db, COLLECTION_NAME, productId);
-    await updateDoc(docRef, {
+    // === Build Variants from Sizes and colorStock ===
+    let processedVariants = [];
+    if (updateData.sizes && updateData.sizes.length > 0) {
+      processedVariants = updateData.sizes.map((sizeObj) => {
+        const processedColors = sizeObj.colorStock.map((cs) => ({
+          color: cs.color,
+          stock: parseInt(cs.stock),
+          images: colorImageMap[cs.color] || [],
+        }));
+
+        return {
+          size: sizeObj.size,
+          colors: processedColors,
+        };
+      });
+    }
+
+    // Prepare final update object
+    const finalUpdateData = {
       ...updateData,
       price: parseFloat(updateData.price),
+      variants: processedVariants,
       updatedAt: serverTimestamp(),
-    });
+    };
+
+    // Remove raw colors/sizes arrays from final doc if you only store variants
+    delete finalUpdateData.colors;
+    delete finalUpdateData.sizes;
+
+    // Update Firestore
+    const docRef = doc(db, COLLECTION_NAME, productId);
+    await updateDoc(docRef, finalUpdateData);
 
     return {
       success: true,

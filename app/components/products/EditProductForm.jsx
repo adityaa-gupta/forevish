@@ -13,6 +13,7 @@ import { updateProduct } from "@/app/lib/services/products";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
+// import { useRouter } from "next/navigation";
 
 const EditProductForm = ({ initialData }) => {
   const router = useRouter();
@@ -20,18 +21,28 @@ const EditProductForm = ({ initialData }) => {
 
   // Categories and options
   const categories = [
-    "Clothing",
-    "Shoes",
-    "Accessories",
-    "Electronics",
-    "Home & Garden",
-    "Sports",
-    "Beauty",
-    "Books",
+    "Co-ord set",
+    "Kurta",
+    "Kurta Set",
+    "Kurta Pajama",
+    "Kurta with Jacket",
+    "Kurta with Pant",
+    "Kurta with Dhoti",
+    "Kurta with Churidar",
+    "Kurta with Sharara",
+    "Kurta with Palazzo",
+    "Kurta with Skirt",
+    "Lehanga",
+    "Lehanga Choli",
+    "Indowestern",
+    "Gown",
+    "Anarkali",
+    "Saree",
+    "Suit",
   ];
 
-  const sizes = ["XS", "S", "M", "L", "XL", "XXL", "One Size"];
-  const colors = [
+  const sizeOptions = ["XS", "S", "M", "L", "XL", "XXL", "One Size"];
+  const colorOptions = [
     "Black",
     "White",
     "Red",
@@ -61,14 +72,19 @@ const EditProductForm = ({ initialData }) => {
       category: "",
       price: "",
       mainImages: [],
-      variants: [
+      colors: [
+        {
+          color: "",
+          images: [],
+        },
+      ],
+      sizes: [
         {
           size: "",
-          colors: [
+          colorStock: [
             {
               color: "",
               stock: "",
-              images: [],
             },
           ],
         },
@@ -77,12 +93,21 @@ const EditProductForm = ({ initialData }) => {
   });
 
   const {
-    fields: variantFields,
-    append: appendVariant,
-    remove: removeVariant,
+    fields: colorFields,
+    append: appendColor,
+    remove: removeColor,
   } = useFieldArray({
     control,
-    name: "variants",
+    name: "colors",
+  });
+
+  const {
+    fields: sizeFields,
+    append: appendSize,
+    remove: removeSize,
+  } = useFieldArray({
+    control,
+    name: "sizes",
   });
 
   const [mainImagePreview, setMainImagePreview] = useState([]);
@@ -90,44 +115,90 @@ const EditProductForm = ({ initialData }) => {
   const [newMainImages, setNewMainImages] = useState([]);
   const [newColorImages, setNewColorImages] = useState({});
 
+  // Convert old structure to new structure
+  const convertOldToNewStructure = (oldData) => {
+    if (!oldData.variants) {
+      return oldData; // Already in new structure
+    }
+
+    // Extract unique colors with their images
+    const colorsMap = new Map();
+    const sizesMap = new Map();
+
+    oldData.variants.forEach((variant) => {
+      const size = variant.size;
+
+      variant.colors.forEach((colorItem) => {
+        // Collect colors and their images
+        if (!colorsMap.has(colorItem.color)) {
+          colorsMap.set(colorItem.color, {
+            color: colorItem.color,
+            images: colorItem.images || [],
+          });
+        } else {
+          // Merge images if the same color appears in multiple variants
+          const existingColor = colorsMap.get(colorItem.color);
+          const newImages = colorItem.images || [];
+          existingColor.images = [
+            ...new Set([...existingColor.images, ...newImages]),
+          ];
+        }
+
+        // Collect sizes and their color stock
+        if (!sizesMap.has(size)) {
+          sizesMap.set(size, {
+            size: size,
+            colorStock: [],
+          });
+        }
+
+        const sizeData = sizesMap.get(size);
+        sizeData.colorStock.push({
+          color: colorItem.color,
+          stock: colorItem.stock || "",
+        });
+      });
+    });
+
+    return {
+      ...oldData,
+      colors: Array.from(colorsMap.values()),
+      sizes: Array.from(sizesMap.values()),
+      variants: undefined, // Remove old structure
+    };
+  };
+
   // Reset form when initialData changes
   useEffect(() => {
     if (initialData) {
       console.log("Setting form data:", initialData);
 
-      // Reset form with new data
+      // Convert old structure to new structure if needed
+      const convertedData = convertOldToNewStructure(initialData);
+      console.log("Converted data:", convertedData);
+
+      // Reset form with converted data
       reset({
-        name: initialData.name || "",
-        description: initialData.description || "",
-        category: initialData.category || "",
-        price: initialData.price?.toString() || "",
-        mainImages: initialData.mainImages || [],
-        variants: initialData.variants || [
-          {
-            size: "",
-            colors: [
-              {
-                color: "",
-                stock: "",
-                images: [],
-              },
-            ],
-          },
+        name: convertedData.name || "",
+        description: convertedData.description || "",
+        category: convertedData.category || "",
+        price: convertedData.price?.toString() || "",
+        mainImages: convertedData.mainImages || [],
+        colors: convertedData.colors || [{ color: "", images: [] }],
+        sizes: convertedData.sizes || [
+          { size: "", colorStock: [{ color: "", stock: "" }] },
         ],
       });
 
       // Set image previews
-      setMainImagePreview(initialData.mainImages || []);
+      setMainImagePreview(convertedData.mainImages || []);
 
       // Set color image previews
       const colorPreviews = {};
-      initialData.variants?.forEach((variant, variantIndex) => {
-        variant.colors?.forEach((color, colorIndex) => {
-          const key = `${variantIndex}-${colorIndex}`;
-          if (color.images && color.images.length > 0) {
-            colorPreviews[key] = color.images;
-          }
-        });
+      convertedData.colors?.forEach((color, colorIndex) => {
+        if (color.images && color.images.length > 0) {
+          colorPreviews[colorIndex.toString()] = color.images;
+        }
       });
       setColorImagePreviews(colorPreviews);
     }
@@ -167,11 +238,11 @@ const EditProductForm = ({ initialData }) => {
   };
 
   // Handle color-specific image upload
-  const handleColorImageUpload = (e, variantIndex, colorIndex) => {
+  const handleColorImageUpload = (e, colorIndex) => {
     const files = Array.from(e.target.files);
     const previews = files.map((file) => URL.createObjectURL(file));
 
-    const key = `${variantIndex}-${colorIndex}`;
+    const key = colorIndex.toString();
 
     setNewColorImages((prev) => ({
       ...prev,
@@ -183,25 +254,21 @@ const EditProductForm = ({ initialData }) => {
       [key]: [...(prev[key] || []), ...previews],
     }));
 
-    const currentVariants = watch("variants");
-    const updatedVariants = [...currentVariants];
-    const currentColorImages =
-      updatedVariants[variantIndex].colors[colorIndex].images || [];
-    updatedVariants[variantIndex].colors[colorIndex].images = [
-      ...currentColorImages,
-      ...files,
-    ];
-    setValue("variants", updatedVariants);
+    // Update form values
+    const currentColors = watch("colors");
+    const updatedColors = [...currentColors];
+    const currentColorImages = updatedColors[colorIndex].images || [];
+    updatedColors[colorIndex].images = [...currentColorImages, ...files];
+    setValue("colors", updatedColors);
   };
 
   // Remove color-specific image
-  const removeColorImage = (variantIndex, colorIndex, imageIndex) => {
-    const key = `${variantIndex}-${colorIndex}`;
+  const removeColorImage = (colorIndex, imageIndex) => {
+    const key = colorIndex.toString();
     const currentPreviews = colorImagePreviews[key] || [];
 
-    const currentVariants = watch("variants");
-    const currentColorImages =
-      currentVariants[variantIndex].colors[colorIndex].images || [];
+    const currentColors = watch("colors");
+    const currentColorImages = currentColors[colorIndex].images || [];
     const formImageToRemove = currentColorImages[imageIndex];
 
     if (formImageToRemove instanceof File) {
@@ -224,45 +291,40 @@ const EditProductForm = ({ initialData }) => {
       [key]: newPreviews,
     }));
 
-    const updatedVariants = [...currentVariants];
-    updatedVariants[variantIndex].colors[colorIndex].images =
-      currentColorImages.filter((_, i) => i !== imageIndex);
-    setValue("variants", updatedVariants);
+    const updatedColors = [...currentColors];
+    updatedColors[colorIndex].images = currentColorImages.filter(
+      (_, i) => i !== imageIndex
+    );
+    setValue("colors", updatedColors);
   };
 
-  // Add color to variant
-  const addColor = (variantIndex) => {
-    const currentVariants = watch("variants");
-    const updatedVariants = [...currentVariants];
-    updatedVariants[variantIndex].colors.push({
+  // Add stock option to a size
+  const addStockOption = (sizeIndex) => {
+    const currentSizes = watch("sizes");
+    const updatedSizes = [...currentSizes];
+    updatedSizes[sizeIndex].colorStock.push({
       color: "",
       stock: "",
-      images: [],
     });
-    setValue("variants", updatedVariants);
+    setValue("sizes", updatedSizes);
   };
 
-  // Remove color from variant
-  const removeColor = (variantIndex, colorIndex) => {
-    const currentVariants = watch("variants");
-    const updatedVariants = [...currentVariants];
-    updatedVariants[variantIndex].colors = updatedVariants[
-      variantIndex
-    ].colors.filter((_, i) => i !== colorIndex);
-    setValue("variants", updatedVariants);
+  // Remove stock option from a size
+  const removeStockOption = (sizeIndex, stockIndex) => {
+    const currentSizes = watch("sizes");
+    const updatedSizes = [...currentSizes];
+    updatedSizes[sizeIndex].colorStock = updatedSizes[
+      sizeIndex
+    ].colorStock.filter((_, i) => i !== stockIndex);
+    setValue("sizes", updatedSizes);
+  };
 
-    const key = `${variantIndex}-${colorIndex}`;
-    setColorImagePreviews((prev) => {
-      const newPreviews = { ...prev };
-      delete newPreviews[key];
-      return newPreviews;
-    });
-
-    setNewColorImages((prev) => {
-      const newImages = { ...prev };
-      delete newImages[key];
-      return newImages;
-    });
+  // Get available colors for dropdown
+  const getAvailableColors = () => {
+    const colors = watch("colors") || [];
+    return colors
+      .filter((colorItem) => colorItem.color) // Only return colors that have been selected
+      .map((colorItem) => colorItem.color);
   };
 
   // Form submission
@@ -322,6 +384,7 @@ const EditProductForm = ({ initialData }) => {
       setIsSubmitting(false);
     }
   };
+
   // Show loading if no initial data yet
   if (!initialData) {
     return (
@@ -478,18 +541,136 @@ const EditProductForm = ({ initialData }) => {
           )}
         </div>
 
-        {/* Size and Color Variants */}
+        {/* Colors Section */}
         <div>
           <div className="flex justify-between items-center mb-4">
             <label className="block text-sm font-medium text-gray-700">
-              Size & Color Variants *
+              Available Colors *
+            </label>
+            <button
+              type="button"
+              onClick={() => appendColor({ color: "", images: [] })}
+              className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
+            >
+              <FiPlus className="w-4 h-4" />
+              Add Color
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {colorFields.map((colorField, colorIndex) => (
+              <div
+                key={colorField.id}
+                className="border border-gray-200 rounded-lg p-4"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-medium text-gray-900">
+                    Color {colorIndex + 1}
+                  </h4>
+                  {colorFields.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeColor(colorIndex)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <FiTrash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Color Selection */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Color *
+                  </label>
+                  <select
+                    {...register(`colors.${colorIndex}.color`, {
+                      required: "Color is required",
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Select Color</option>
+                    {colorOptions.map((color) => (
+                      <option key={color} value={color}>
+                        {color}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.colors?.[colorIndex]?.color && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.colors[colorIndex].color.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Color-specific Image Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Color Images
+                  </label>
+                  <div className="border-2 border-dashed border-gray-200 rounded-lg p-4">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => handleColorImageUpload(e, colorIndex)}
+                      className="hidden"
+                      id={`color-image-upload-${colorIndex}`}
+                    />
+                    <label
+                      htmlFor={`color-image-upload-${colorIndex}`}
+                      className="cursor-pointer flex flex-col items-center justify-center py-2"
+                    >
+                      <FiImage className="w-6 h-6 text-gray-400 mb-1" />
+                      <span className="text-xs text-gray-500">
+                        Upload additional images for this color
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* Color Image Previews */}
+                  {colorImagePreviews[colorIndex.toString()]?.length > 0 && (
+                    <div className="mt-3 grid grid-cols-3 md:grid-cols-4 gap-2">
+                      {colorImagePreviews[colorIndex.toString()].map(
+                        (preview, imageIndex) => (
+                          <div key={imageIndex} className="relative">
+                            <img
+                              src={preview}
+                              alt={`Color Preview ${imageIndex}`}
+                              className="w-full h-16 object-cover rounded"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removeColorImage(colorIndex, imageIndex)
+                              }
+                              className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                            >
+                              <FiTrash2 className="w-2 h-2" />
+                            </button>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Sizes & Stock Section */}
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <label className="block text-sm font-medium text-gray-700">
+              Sizes & Stock *
             </label>
             <button
               type="button"
               onClick={() =>
-                appendVariant({
+                appendSize({
                   size: "",
-                  colors: [{ color: "", stock: "", images: [] }],
+                  colorStock: [{ color: "", stock: "" }],
                 })
               }
               className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
@@ -500,19 +681,19 @@ const EditProductForm = ({ initialData }) => {
           </div>
 
           <div className="space-y-6">
-            {variantFields.map((variant, variantIndex) => (
+            {sizeFields.map((sizeField, sizeIndex) => (
               <div
-                key={variant.id}
+                key={sizeField.id}
                 className="border border-gray-200 rounded-lg p-4"
               >
                 <div className="flex justify-between items-center mb-4">
                   <h4 className="font-medium text-gray-900">
-                    Size Variant {variantIndex + 1}
+                    Size {sizeIndex + 1}
                   </h4>
-                  {variantFields.length > 1 && (
+                  {sizeFields.length > 1 && (
                     <button
                       type="button"
-                      onClick={() => removeVariant(variantIndex)}
+                      onClick={() => removeSize(sizeIndex)}
                       className="text-red-600 hover:text-red-700"
                     >
                       <FiTrash2 className="w-4 h-4" />
@@ -523,171 +704,106 @@ const EditProductForm = ({ initialData }) => {
                 {/* Size Selection */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Size
+                    Size *
                   </label>
                   <select
-                    {...register(`variants.${variantIndex}.size`, {
+                    {...register(`sizes.${sizeIndex}.size`, {
                       required: "Size is required",
                     })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Select Size</option>
-                    {sizes.map((size) => (
+                    {sizeOptions.map((size) => (
                       <option key={size} value={size}>
                         {size}
                       </option>
                     ))}
                   </select>
-                  {errors.variants?.[variantIndex]?.size && (
+                  {errors.sizes?.[sizeIndex]?.size && (
                     <p className="text-red-500 text-sm mt-1">
-                      {errors.variants[variantIndex].size.message}
+                      {errors.sizes[sizeIndex].size.message}
                     </p>
                   )}
                 </div>
 
-                {/* Colors for this size */}
+                {/* Color Stock for this size */}
                 <div>
                   <div className="flex justify-between items-center mb-3">
                     <label className="block text-sm font-medium text-gray-700">
-                      Colors, Stock & Images
+                      Color Stock
                     </label>
                     <button
                       type="button"
-                      onClick={() => addColor(variantIndex)}
+                      onClick={() => addStockOption(sizeIndex)}
                       className="text-blue-600 hover:text-blue-700 text-sm"
                     >
-                      + Add Color
+                      + Add Color Stock
                     </button>
                   </div>
 
-                  <div className="space-y-4">
-                    {watch(`variants.${variantIndex}.colors`)?.map(
-                      (colorItem, colorIndex) => (
+                  <div className="space-y-3">
+                    {watch(`sizes.${sizeIndex}.colorStock`)?.map(
+                      (stockItem, stockIndex) => (
                         <div
-                          key={colorIndex}
-                          className="border border-gray-100 rounded-lg p-4 bg-gray-50"
+                          key={stockIndex}
+                          className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-gray-50 rounded-lg"
                         >
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                            {/* Color */}
-                            <div>
-                              <label className="block text-sm text-gray-600 mb-1">
-                                Color
-                              </label>
-                              <select
-                                {...register(
-                                  `variants.${variantIndex}.colors.${colorIndex}.color`,
-                                  {
-                                    required: "Color is required",
-                                  }
-                                )}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              >
-                                <option value="">Select Color</option>
-                                {colors.map((color) => (
-                                  <option key={color} value={color}>
-                                    {color}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-
-                            {/* Stock */}
-                            <div>
-                              <label className="block text-sm text-gray-600 mb-1">
-                                Stock
-                              </label>
-                              <input
-                                type="number"
-                                min="0"
-                                {...register(
-                                  `variants.${variantIndex}.colors.${colorIndex}.stock`,
-                                  {
-                                    required: "Stock is required",
-                                    min: 0,
-                                  }
-                                )}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="0"
-                              />
-                            </div>
-
-                            {/* Remove Color Button */}
-                            <div className="flex items-end">
-                              {watch(`variants.${variantIndex}.colors`)
-                                ?.length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    removeColor(variantIndex, colorIndex)
-                                  }
-                                  className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg"
-                                >
-                                  <FiTrash2 className="w-4 h-4" />
-                                </button>
+                          {/* Color Selection */}
+                          <div>
+                            <label className="block text-sm text-gray-600 mb-1">
+                              Color *
+                            </label>
+                            <select
+                              {...register(
+                                `sizes.${sizeIndex}.colorStock.${stockIndex}.color`,
+                                {
+                                  required: "Color is required",
+                                }
                               )}
-                            </div>
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                              <option value="">Select Color</option>
+                              {getAvailableColors().map((color) => (
+                                <option key={color} value={color}>
+                                  {color}
+                                </option>
+                              ))}
+                            </select>
                           </div>
 
-                          {/* Color-specific Image Upload */}
+                          {/* Stock */}
                           <div>
-                            <label className="block text-sm text-gray-600 mb-2">
-                              Color-specific Images
+                            <label className="block text-sm text-gray-600 mb-1">
+                              Stock *
                             </label>
-                            <div className="border-2 border-dashed border-gray-200 rounded-lg p-4">
-                              <input
-                                type="file"
-                                multiple
-                                accept="image/*"
-                                onChange={(e) =>
-                                  handleColorImageUpload(
-                                    e,
-                                    variantIndex,
-                                    colorIndex
-                                  )
+                            <input
+                              type="number"
+                              min="0"
+                              {...register(
+                                `sizes.${sizeIndex}.colorStock.${stockIndex}.stock`,
+                                {
+                                  required: "Stock is required",
+                                  min: 0,
                                 }
-                                className="hidden"
-                                id={`color-image-upload-${variantIndex}-${colorIndex}`}
-                              />
-                              <label
-                                htmlFor={`color-image-upload-${variantIndex}-${colorIndex}`}
-                                className="cursor-pointer flex flex-col items-center justify-center py-2"
-                              >
-                                <FiImage className="w-6 h-6 text-gray-400 mb-1" />
-                                <span className="text-xs text-gray-500">
-                                  Upload additional images for this color
-                                </span>
-                              </label>
-                            </div>
+                              )}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="0"
+                            />
+                          </div>
 
-                            {/* Color Image Previews */}
-                            {colorImagePreviews[`${variantIndex}-${colorIndex}`]
-                              ?.length > 0 && (
-                              <div className="mt-3 grid grid-cols-3 md:grid-cols-4 gap-2">
-                                {colorImagePreviews[
-                                  `${variantIndex}-${colorIndex}`
-                                ].map((preview, imageIndex) => (
-                                  <div key={imageIndex} className="relative">
-                                    <img
-                                      src={preview}
-                                      alt={`Color Preview ${imageIndex}`}
-                                      className="w-full h-16 object-cover rounded"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        removeColorImage(
-                                          variantIndex,
-                                          colorIndex,
-                                          imageIndex
-                                        )
-                                      }
-                                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
-                                    >
-                                      <FiTrash2 className="w-2 h-2" />
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
+                          {/* Remove Button */}
+                          <div className="flex items-end">
+                            {watch(`sizes.${sizeIndex}.colorStock`)?.length >
+                              1 && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeStockOption(sizeIndex, stockIndex)
+                                }
+                                className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg"
+                              >
+                                <FiTrash2 className="w-4 h-4" />
+                              </button>
                             )}
                           </div>
                         </div>
