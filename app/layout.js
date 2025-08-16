@@ -1,6 +1,6 @@
 import { Geist, Manrope } from "@next/font/google";
 import "./globals.css";
-import Navbar from "./components/Navbar";
+import { Providers } from "./providers/Provider";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -28,8 +28,7 @@ export default function RootLayout({ children }) {
       className={`${geist.variable} ${manrope.variable} antialiased`}
     >
       <body>
-        <Navbar />
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
