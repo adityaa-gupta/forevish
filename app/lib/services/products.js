@@ -219,6 +219,13 @@ export const createProduct = async (productData) => {
       category: productData.category,
       price: parseFloat(productData.price),
       mainImages: mainImageUrls,
+      discountPercentage: productData.discountPercentage || 0,
+      discountPrice: productData.discountPrice
+        ? parseFloat(productData.discountPrice)
+        : null,
+      originalPrice: productData.originalPrice
+        ? parseFloat(productData.originalPrice)
+        : null,
       variants: processedVariants,
       isActive: true,
       createdAt: serverTimestamp(),
@@ -482,6 +489,13 @@ export const updateProduct = async (productId, updateData) => {
     const finalUpdateData = {
       ...updateData,
       price: parseFloat(updateData.price),
+      discountPercentage: updateData.discountPercentage || 0,
+      discountPrice: updateData.discountPrice
+        ? parseFloat(updateData.discountPrice)
+        : null,
+      originalPrice: updateData.originalPrice
+        ? parseFloat(updateData.originalPrice)
+        : null,
       variants: processedVariants,
       updatedAt: serverTimestamp(),
     };
