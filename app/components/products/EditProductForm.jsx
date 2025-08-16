@@ -7,39 +7,20 @@ import {
   FiUpload,
   FiImage,
   FiArrowLeft,
+  FiPercent,
 } from "react-icons/fi";
 import Button from "../Button";
 import { updateProduct } from "@/app/lib/services/products";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
-// import { useRouter } from "next/navigation";
 
 const EditProductForm = ({ initialData }) => {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Categories and options
-  const categories = [
-    "Co-ord set",
-    "Kurta",
-    "Kurta Set",
-    "Kurta Pajama",
-    "Kurta with Jacket",
-    "Kurta with Pant",
-    "Kurta with Dhoti",
-    "Kurta with Churidar",
-    "Kurta with Sharara",
-    "Kurta with Palazzo",
-    "Kurta with Skirt",
-    "Lehanga",
-    "Lehanga Choli",
-    "Indowestern",
-    "Gown",
-    "Anarkali",
-    "Saree",
-    "Suit",
-  ];
+  const categories = ["Co-ord set", "Lehanga", "Indowestern", "Gown", "Suit"];
 
   const sizeOptions = ["XS", "S", "M", "L", "XL", "XXL", "One Size"];
   const colorOptions = [
@@ -71,6 +52,8 @@ const EditProductForm = ({ initialData }) => {
       description: "",
       category: "",
       price: "",
+      originalPrice: "", // New field for original price
+      discountPercentage: "", // New field for discount percentage
       mainImages: [],
       colors: [
         {
@@ -114,6 +97,65 @@ const EditProductForm = ({ initialData }) => {
   const [colorImagePreviews, setColorImagePreviews] = useState({});
   const [newMainImages, setNewMainImages] = useState([]);
   const [newColorImages, setNewColorImages] = useState({});
+
+  // Watch price fields for calculations
+  const watchedPrice = watch("price");
+  const watchedOriginalPrice = watch("originalPrice");
+  const watchedDiscountPercentage = watch("discountPercentage");
+
+  // Calculate discount percentage from prices
+  const calculateDiscountPercentage = (original, current) => {
+    if (!original || !current || original <= current) return 0;
+    return Math.round(((original - current) / original) * 100);
+  };
+
+  // Calculate discounted price from percentage
+  const calculateDiscountedPrice = (original, percentage) => {
+    if (!original || !percentage) return original;
+    return Math.round(original * (1 - percentage / 100) * 100) / 100;
+  };
+
+  // Handle original price change
+  const handleOriginalPriceChange = (e) => {
+    const originalPrice = parseFloat(e.target.value) || 0;
+    setValue("originalPrice", originalPrice);
+
+    if (watchedDiscountPercentage && originalPrice) {
+      const discountedPrice = calculateDiscountedPrice(
+        originalPrice,
+        watchedDiscountPercentage
+      );
+      setValue("price", discountedPrice);
+    }
+  };
+
+  // Handle discount percentage change
+  const handleDiscountPercentageChange = (e) => {
+    const percentage = parseFloat(e.target.value) || 0;
+    setValue("discountPercentage", percentage);
+
+    if (watchedOriginalPrice && percentage) {
+      const discountedPrice = calculateDiscountedPrice(
+        watchedOriginalPrice,
+        percentage
+      );
+      setValue("price", discountedPrice);
+    }
+  };
+
+  // Handle final price change (recalculate discount percentage)
+  const handlePriceChange = (e) => {
+    const price = parseFloat(e.target.value) || 0;
+    setValue("price", price);
+
+    if (watchedOriginalPrice && price) {
+      const percentage = calculateDiscountPercentage(
+        watchedOriginalPrice,
+        price
+      );
+      setValue("discountPercentage", percentage);
+    }
+  };
 
   // Convert old structure to new structure
   const convertOldToNewStructure = (oldData) => {
@@ -177,12 +219,23 @@ const EditProductForm = ({ initialData }) => {
       const convertedData = convertOldToNewStructure(initialData);
       console.log("Converted data:", convertedData);
 
+      // Calculate discount percentage if both prices exist
+      let discountPercentage = 0;
+      if (convertedData.originalPrice && convertedData.price) {
+        discountPercentage = calculateDiscountPercentage(
+          convertedData.originalPrice,
+          convertedData.price
+        );
+      }
+
       // Reset form with converted data
       reset({
         name: convertedData.name || "",
         description: convertedData.description || "",
         category: convertedData.category || "",
         price: convertedData.price?.toString() || "",
+        originalPrice: convertedData.originalPrice?.toString() || "",
+        discountPercentage: discountPercentage?.toString() || "",
         mainImages: convertedData.mainImages || [],
         colors: convertedData.colors || [{ color: "", images: [] }],
         sizes: convertedData.sizes || [
@@ -336,9 +389,33 @@ const EditProductForm = ({ initialData }) => {
     try {
       setIsSubmitting(true);
 
-      console.log("Submitting form data:", data);
+      // Prepare form data with proper price handling
+      const formData = {
+        ...data,
+        // Convert string values to numbers for database storage
+        price: parseFloat(data.price) || 0,
+        originalPrice: data.originalPrice
+          ? parseFloat(data.originalPrice)
+          : null,
+        discountPercentage: data.discountPercentage
+          ? parseFloat(data.discountPercentage)
+          : null,
 
-      const result = await updateProduct(initialData.id, data);
+        // Calculate derived fields for easier querying
+        isOnSale:
+          data.originalPrice &&
+          parseFloat(data.originalPrice) > parseFloat(data.price),
+        discountAmount: data.originalPrice
+          ? parseFloat(data.originalPrice) - parseFloat(data.price)
+          : 0,
+
+        // Add metadata
+        updatedAt: new Date().toISOString(),
+      };
+
+      console.log("Submitting form data:", formData);
+
+      const result = await updateProduct(initialData.id, formData);
 
       if (result.success) {
         toast.dismiss(loadingToast);
@@ -469,25 +546,120 @@ const EditProductForm = ({ initialData }) => {
           )}
         </div>
 
-        {/* Price */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Price *
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              {...register("price", { required: "Price is required", min: 0 })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="0.00"
-            />
-            {errors.price && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.price.message}
+        {/* Pricing Section */}
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Pricing & Discount
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Original Price */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Original Price
+                <span className="text-gray-500 text-xs ml-1">(Optional)</span>
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                {...register("originalPrice", { min: 0 })}
+                onChange={handleOriginalPriceChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="0.00"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Leave empty if no discount
               </p>
-            )}
+            </div>
+
+            {/* Discount Percentage */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Discount %
+                <span className="text-gray-500 text-xs ml-1">(Optional)</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  {...register("discountPercentage", { min: 0, max: 100 })}
+                  onChange={handleDiscountPercentageChange}
+                  className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="0"
+                />
+                <FiPercent className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              </div>
+              {watchedDiscountPercentage > 0 && (
+                <p className="text-xs text-green-600 mt-1">
+                  {watchedDiscountPercentage}% discount applied
+                </p>
+              )}
+            </div>
+
+            {/* Final/Selling Price */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Selling Price *
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                {...register("price", {
+                  required: "Price is required",
+                  min: 0,
+                })}
+                onChange={handlePriceChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="0.00"
+              />
+              {errors.price && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.price.message}
+                </p>
+              )}
+              {watchedOriginalPrice &&
+                watchedPrice &&
+                watchedOriginalPrice > watchedPrice && (
+                  <p className="text-xs text-green-600 mt-1">
+                    Save ${(watchedOriginalPrice - watchedPrice).toFixed(2)}
+                  </p>
+                )}
+            </div>
           </div>
+
+          {/* Price Preview */}
+          {watchedOriginalPrice &&
+            watchedPrice &&
+            watchedOriginalPrice > watchedPrice && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm text-gray-600">
+                      Price Preview:
+                    </span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-lg font-bold text-green-600">
+                        ${watchedPrice}
+                      </span>
+                      <span className="text-sm text-gray-500 line-through">
+                        ${watchedOriginalPrice}
+                      </span>
+                      <span className="text-sm bg-red-100 text-red-800 px-2 py-1 rounded">
+                        -{watchedDiscountPercentage}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">Customer Saves</p>
+                    <p className="text-lg font-medium text-green-600">
+                      ${(watchedOriginalPrice - watchedPrice).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
         </div>
 
         {/* Main Product Images */}
