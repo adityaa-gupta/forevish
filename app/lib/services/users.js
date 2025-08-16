@@ -1,6 +1,6 @@
 import {
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword as firebaseSignIn, // Rename the import
+  signInWithEmailAndPassword as firebaseSignIn,
   signInWithPopup,
   signOut,
   updateProfile,
@@ -15,8 +15,11 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
-// Import from Provider for guaranteed initialization
+// Import from Provider for guaranteed initialization (Firebase Auth only)
 import { auth, db, googleProvider } from "@/app/providers/Provider";
+
+// Import Supabase for image storage
+import { uploadImage, deleteImage } from "@/app/supabase/supabase";
 
 const USERS_COLLECTION = "users";
 
@@ -34,26 +37,212 @@ const createUserProfile = async (user, additionalData = {}) => {
         displayName: displayName || additionalData.name || "",
         email,
         photoURL: photoURL || "",
+        phone: "",
+        dateOfBirth: "",
+        gender: "",
+        address: {
+          street: "",
+          city: "",
+          state: "",
+          zipCode: "",
+          country: "",
+        },
         createdAt,
         updatedAt: createdAt,
         isActive: true,
         role: "customer",
+        isNewUser: true, // Flag to identify new users
         preferences: {
           newsletter: true,
           notifications: true,
+          smsUpdates: false,
         },
         ...additionalData,
       });
+
+      return { isNewUser: true, userDoc: userDocRef };
     }
 
-    return userDocRef;
+    return { isNewUser: false, userDoc: userDocRef };
   } catch (error) {
     console.error("Error creating user profile:", error);
     throw error;
   }
 };
 
-// Sign up with email and password
+// Check if user is new and needs profile completion
+export const checkUserProfileStatus = async (uid) => {
+  try {
+    if (!db) {
+      throw new Error("Firestore not initialized");
+    }
+
+    const userDocRef = doc(db, USERS_COLLECTION, uid);
+    const userDoc = await getDoc(userDocRef);
+
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      return {
+        success: true,
+        isNewUser: userData.isNewUser || false,
+        profileComplete: !!(
+          userData.displayName &&
+          userData.phone &&
+          userData.address?.city
+        ),
+        data: userData,
+      };
+    }
+
+    return {
+      success: true,
+      isNewUser: true,
+      profileComplete: false,
+      data: null,
+    };
+  } catch (error) {
+    console.error("Error checking user profile status:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
+
+// Update user profile
+export const updateUserProfile = async (uid, profileData) => {
+  try {
+    if (!db) {
+      throw new Error("Firestore not initialized");
+    }
+
+    const userDocRef = doc(db, USERS_COLLECTION, uid);
+
+    await updateDoc(userDocRef, {
+      ...profileData,
+      updatedAt: serverTimestamp(),
+      isNewUser: false, // Mark as no longer new user
+    });
+
+    return {
+      success: true,
+      message: "Profile updated successfully",
+    };
+  } catch (error) {
+    console.error("Error updating user profile:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
+
+// Upload profile image using Supabase
+export const uploadProfileImage = async (uid, file) => {
+  try {
+    if (!file) {
+      throw new Error("No file provided");
+    }
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      throw new Error("File must be an image");
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error("Image size must be less than 5MB");
+    }
+
+    console.log("🔄 Uploading profile image to Supabase...");
+
+    // Delete existing profile image if it exists
+    try {
+      const userDocRef = doc(db, USERS_COLLECTION, uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        if (userData.photoURL && userData.photoURL.includes("supabase")) {
+          console.log("🗑️ Deleting old profile image...");
+          await deleteImage(userData.photoURL, "forevish");
+        }
+      }
+    } catch (deleteError) {
+      console.warn("Could not delete old image:", deleteError);
+      // Continue with upload even if delete fails
+    }
+
+    // Upload new image to Supabase Storage
+    const photoURL = await uploadImage(
+      file,
+      "forevish", // bucket name
+      `profile-images/${uid}` // folder path
+    );
+
+    console.log("✅ Image uploaded successfully:", photoURL);
+
+    // Update user's photoURL in Firebase Auth
+    if (auth.currentUser && auth.currentUser.uid === uid) {
+      await updateProfile(auth.currentUser, {
+        photoURL: photoURL,
+      });
+      console.log("✅ Firebase Auth profile updated");
+    }
+
+    // Update user profile in Firestore
+    const userDocRef = doc(db, USERS_COLLECTION, uid);
+    await updateDoc(userDocRef, {
+      photoURL: photoURL,
+      updatedAt: serverTimestamp(),
+    });
+
+    console.log("✅ Firestore profile updated");
+
+    return {
+      success: true,
+      photoURL: photoURL,
+    };
+  } catch (error) {
+    console.error("❌ Error uploading profile image:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to upload image",
+    };
+  }
+};
+
+// Get user profile data
+export const getUserProfile = async (uid) => {
+  try {
+    if (!db) {
+      throw new Error("Firestore not initialized");
+    }
+
+    const userDocRef = doc(db, USERS_COLLECTION, uid);
+    const userDoc = await getDoc(userDocRef);
+
+    if (userDoc.exists()) {
+      return {
+        success: true,
+        data: userDoc.data(),
+      };
+    }
+
+    return {
+      success: false,
+      error: "User profile not found",
+    };
+  } catch (error) {
+    console.error("Error getting user profile:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
+
+// Sign up with email and password (updated)
 export const signUpWithEmailAndPassword = async (email, password, name) => {
   try {
     if (!auth) {
@@ -73,7 +262,7 @@ export const signUpWithEmailAndPassword = async (email, password, name) => {
     });
 
     // Create user profile in Firestore
-    await createUserProfile(user, { name });
+    const profileResult = await createUserProfile(user, { name });
 
     return {
       success: true,
@@ -83,6 +272,7 @@ export const signUpWithEmailAndPassword = async (email, password, name) => {
         displayName: name,
         photoURL: user.photoURL,
       },
+      isNewUser: profileResult.isNewUser,
     };
   } catch (error) {
     console.error("Error signing up:", error);
@@ -93,16 +283,18 @@ export const signUpWithEmailAndPassword = async (email, password, name) => {
   }
 };
 
-// Sign in with email and password
+// Sign in with email and password (updated)
 export const signInWithEmailAndPassword = async (email, password) => {
   try {
     if (!auth) {
       throw new Error("Firebase Auth not initialized");
     }
 
-    // Use the renamed Firebase function
     const userCredential = await firebaseSignIn(auth, email, password);
     const user = userCredential.user;
+
+    // Check if user profile exists and if it's complete
+    const profileStatus = await checkUserProfileStatus(user.uid);
 
     return {
       success: true,
@@ -112,6 +304,8 @@ export const signInWithEmailAndPassword = async (email, password) => {
         displayName: user.displayName,
         photoURL: user.photoURL,
       },
+      isNewUser: profileStatus.isNewUser,
+      profileComplete: profileStatus.profileComplete,
     };
   } catch (error) {
     console.error("Error signing in:", error);
@@ -122,7 +316,7 @@ export const signInWithEmailAndPassword = async (email, password) => {
   }
 };
 
-// Sign in with Google
+// Sign in with Google (updated)
 export const signInWithGoogle = async () => {
   try {
     if (!auth || !googleProvider) {
@@ -137,7 +331,7 @@ export const signInWithGoogle = async () => {
     const user = result.user;
 
     // Create user profile if it doesn't exist
-    await createUserProfile(user);
+    const profileResult = await createUserProfile(user);
 
     return {
       success: true,
@@ -147,6 +341,7 @@ export const signInWithGoogle = async () => {
         displayName: user.displayName,
         photoURL: user.photoURL,
       },
+      isNewUser: profileResult.isNewUser,
     };
   } catch (error) {
     console.error("Error signing in with Google:", error);

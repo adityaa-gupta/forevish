@@ -14,7 +14,8 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
-import { db } from "@/app/firebase/config";
+// Import from Provider instead of config
+import { db } from "@/app/providers/Provider";
 
 // Supabase configuration
 import { createClient } from "@supabase/supabase-js";
@@ -280,23 +281,31 @@ export const getAllProducts = async () => {
 };
 
 // Get a single product by ID
-// Get a single product by ID
+// Get a single product by ID (updated with better error handling)
 export const getProductById = async (productId) => {
-  console.log("Fetching product by ID:", productId);
+  console.log("🔍 Fetching product by ID:", productId);
   console.log("Product ID type:", typeof productId);
   console.log("Collection name:", COLLECTION_NAME);
 
   try {
+    // Check if db is initialized
+    if (!db) {
+      console.error("❌ Firestore db is not initialized");
+      throw new Error("Database not initialized");
+    }
+
     // Ensure productId is a string and not empty
     if (!productId || typeof productId !== "string") {
       throw new Error("Invalid product ID provided");
     }
 
+    console.log("✅ Firestore db is available:", !!db);
+
     const docRef = doc(db, COLLECTION_NAME, productId);
-    console.log("Document reference created:", docRef.path);
+    console.log("📄 Document reference created:", docRef.path);
 
     const docSnap = await getDoc(docRef);
-    console.log("Document snapshot exists:", docSnap.exists());
+    console.log("📋 Document snapshot exists:", docSnap.exists());
 
     if (docSnap.exists()) {
       const productData = {
@@ -304,21 +313,25 @@ export const getProductById = async (productId) => {
         ...docSnap.data(),
       };
 
-      console.log("Product data retrieved:", productData);
+      console.log(
+        "✅ Product data retrieved:",
+        productData.name || "Unnamed Product"
+      );
 
       return {
         success: true,
         data: productData,
       };
     } else {
-      console.log("Document does not exist for ID:", productId);
+      console.log("❌ Document does not exist for ID:", productId);
       return {
         success: false,
         error: "Product not found",
+        data: null,
       };
     }
   } catch (error) {
-    console.error("Error fetching product:", error);
+    console.error("❌ Error fetching product:", error);
     console.error("Error details:", {
       message: error.message,
       code: error.code,
@@ -328,6 +341,7 @@ export const getProductById = async (productId) => {
     return {
       success: false,
       error: error.message,
+      data: null,
     };
   }
 };

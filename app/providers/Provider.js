@@ -6,6 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
+// Remove storage import since we're using Supabase
 import Navbar from "../components/Navbar";
 import { store } from "../_store/store";
 import { login, logout, setAuthLoading } from "../_store/features/userSlice";
@@ -21,7 +22,7 @@ const firebaseConfig = {
   measurementId: "G-YCMSFNB3YY",
 };
 
-// Initialize Firebase at the entry point
+// Initialize Firebase at the entry point (Auth + Firestore only)
 let app, db, auth, googleProvider;
 
 try {
@@ -34,12 +35,13 @@ try {
   googleProvider.addScope("email");
   googleProvider.addScope("profile");
 
-  console.log("✅ Firebase initialized successfully");
+  console.log("✅ Firebase initialized successfully (Auth + Firestore)");
+  console.log("📁 Using Supabase for storage");
 } catch (error) {
   console.error("❌ Firebase initialization failed:", error);
 }
 
-// Export Firebase services for use in other components
+// Export Firebase services (no storage since we use Supabase)
 export { app, db, auth, googleProvider, GoogleAuthProvider };
 
 // Auth State Manager Component
