@@ -1,4 +1,4 @@
-import { Geist, Manrope } from "@next/font/google";
+import { Geist, Manrope } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers/Provider";
 
