@@ -15,6 +15,7 @@ import {
 } from "../_store/features/wishlistSlice";
 import { setFilterLoading } from "../_store/features/filterSlice";
 import ProductFilter from "./ProductFilter";
+import Link from "next/link";
 
 export function ProductListing() {
   // State for products
@@ -306,7 +307,7 @@ export function ProductListing() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        <div className="flex gap-8">
+        <div className="flex flex-col md:flex-row gap-8">
           {/* Filter Component */}
           <ProductFilter onFilterChange={handleFilterChange} />
 
@@ -346,7 +347,8 @@ export function ProductListing() {
                   const inWishlist = isProductInWishlist(product.id);
 
                   return (
-                    <div
+                    <Link
+                      href={`/product/${product.id}`}
                       key={product.id}
                       className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white border border-gray-200 rounded-lg overflow-hidden"
                     >
@@ -483,7 +485,7 @@ export function ProductListing() {
                           )}
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
