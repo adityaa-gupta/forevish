@@ -3,12 +3,14 @@ import { configureStore } from "@reduxjs/toolkit";
 import userReducer from "./features/userSlice";
 import cartReducer from "./features/cartSlice";
 import wishlistReducer from "./features/wishlistSlice";
+import filterReducer from "./features/filterSlice";
 
 export const store = configureStore({
   reducer: {
     user: userReducer,
     cart: cartReducer,
     wishlist: wishlistReducer,
+    filters: filterReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -23,3 +25,4 @@ export const store = configureStore({
 export const selectUser = (state) => state.user;
 export const selectCart = (state) => state.cart;
 export const selectWishlist = (state) => state.wishlist;
+export const selectFilters = (state) => state.filters;
