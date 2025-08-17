@@ -1,10 +1,17 @@
-import Image from "next/image";
 import { ProductListing } from "./components/ProductListing";
+import { getAllProductsServer } from "./lib/server/products";
 
-export default function Home() {
+export default async function Home() {
+  const res = await getAllProductsServer();
+  // Data already sanitized in server util; safe to pass directly.
+  const products = res.success ? res.data : [];
+
   return (
     <div>
-      <ProductListing />
+      <ProductListing
+        initialProducts={products}
+        fetchError={res.success ? null : res.error}
+      />
     </div>
   );
 }

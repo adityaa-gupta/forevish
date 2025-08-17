@@ -45,7 +45,7 @@ try {
 export { app, db, auth, googleProvider, GoogleAuthProvider };
 
 // ---- Product helper (fetch product by id) ----
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import FooterComponent from "../components/FooterComponent";
 
 /**
@@ -85,7 +85,105 @@ export async function fetchProductById(productId) {
     return { success: false, error: e.message || "Failed to fetch product" };
   }
 }
-// ---- end product helper ----
+
+/**
+ * Fetch all products (client-side helper, NOT for SSR).
+ * SSR should use getAllProductsServer from app/lib/server/products.js
+ */
+export async function fetchAllProducts() {
+  if (!db) return { success: false, error: "Firestore not initialized" };
+  try {
+    const col = collection(db, "products");
+    const snap = await getDocs(col);
+    const data = snap.docs.map((d) => {
+      const raw = d.data();
+      return {
+        id: d.id,
+        ...raw,
+        mainImages: raw.mainImages || [],
+        variants: raw.variants || [],
+        category: raw.category || "",
+        price: raw.price ?? 0,
+        discountPrice: raw.discountPrice ?? null,
+        originalPrice: raw.originalPrice ?? raw.price ?? 0,
+      };
+    });
+    return { success: true, data };
+  } catch (e) {
+    return { success: false, error: e.message || "Failed to fetch products" };
+  }
+}
+// ---- end all products helper ----
+
+// --- helper: deep sanitize any Firestore Timestamp / special objects to plain JSON ---
+function sanitize(value) {
+  if (value == null) return value;
+  if (Array.isArray(value)) return value.map(sanitize);
+  if (typeof value === "object") {
+    // Firestore Timestamp instance (has toDate) OR plain seconds/nanoseconds
+    if (typeof value.toDate === "function") {
+      try {
+        return value.toDate().toISOString();
+      } catch {
+        return String(value);
+      }
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(value, "seconds") &&
+      Object.prototype.hasOwnProperty.call(value, "nanoseconds")
+    ) {
+      const ms =
+        value.seconds * 1000 + Math.floor((value.nanoseconds || 0) / 1e6);
+      return new Date(ms).toISOString();
+    }
+    const out = {};
+    for (const k in value) {
+      out[k] = sanitize(value[k]);
+    }
+    return out;
+  }
+  return value;
+}
+
+function normalizeProduct(id, raw) {
+  const base = {
+    id,
+    ...raw,
+    mainImages: raw.mainImages || [],
+    variants: raw.variants || [],
+    category: raw.category || "",
+    price: raw.price ?? 0,
+    discountPrice: raw.discountPrice ?? null,
+    originalPrice: raw.originalPrice ?? raw.price ?? 0,
+  };
+  // Add ISO helpers then sanitize everything (removes Timestamp objects)
+  base.createdAtISO = raw.createdAt ? sanitize(raw.createdAt) : null;
+  base.updatedAtISO = raw.updatedAt ? sanitize(raw.updatedAt) : null;
+  return sanitize(base);
+}
+
+export async function getProductByIdServer(id) {
+  if (!id) return { success: false, error: "Missing id" };
+  try {
+    const ref = doc(serverDb, "products", id);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return { success: false, error: "Not found" };
+    return { success: true, data: normalizeProduct(snap.id, snap.data()) };
+  } catch (e) {
+    return { success: false, error: e.message || "Fetch failed" };
+  }
+}
+
+export async function getAllProductsServer() {
+  try {
+    const colRef = collection(serverDb, "products");
+    const snap = await getDocs(colRef);
+    const data = snap.docs.map((d) => normalizeProduct(d.id, d.data()));
+    return { success: true, data };
+  } catch (e) {
+    return { success: false, error: e.message || "Failed to fetch products" };
+  }
+}
 
 // Auth State Manager Component
 function AuthStateManager() {
@@ -124,7 +222,7 @@ function AuthStateManager() {
           dispatch(logout());
         }
 
-        // Auth loading complete
+        // Auth loading completeß
         dispatch(setAuthLoading(false));
       },
       (error) => {
