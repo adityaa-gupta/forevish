@@ -23,6 +23,7 @@ export default function ProfilePage() {
   const { userInfo, isLoggedIn, loading } = useSelector((state) => state.user);
   const dispatch = useDispatch();
   const router = useRouter();
+  console.log("userInfo in ProfilePage", userInfo);
 
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -47,6 +48,7 @@ export default function ProfilePage() {
       smsUpdates: false,
     },
   });
+  const [previewPhoto, setPreviewPhoto] = useState(null);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -58,25 +60,36 @@ export default function ProfilePage() {
   // Load user data when component mounts
   useEffect(() => {
     if (userInfo) {
-      setProfileData({
-        displayName: userInfo.displayName || "",
+      setProfileData((prev) => ({
+        ...prev,
+        displayName: userInfo.displayName || userInfo.fullName || "",
         email: userInfo.email || "",
         phone: userInfo.phone || "",
         dateOfBirth: userInfo.dateOfBirth || "",
         gender: userInfo.gender || "",
-        address: userInfo.address || {
-          street: "",
-          city: "",
-          state: "",
-          zipCode: "",
-          country: "",
+        address: {
+          street: userInfo.address?.street || "",
+          city: userInfo.address?.city || "",
+          state: userInfo.address?.state || "",
+          zipCode: userInfo.address?.zipCode || "",
+          country: userInfo.address?.country || "",
         },
-        preferences: userInfo.preferences || {
-          newsletter: true,
-          notifications: true,
-          smsUpdates: false,
+        preferences: {
+          newsletter:
+            userInfo.preferences?.newsletter !== undefined
+              ? userInfo.preferences.newsletter
+              : true,
+          notifications:
+            userInfo.preferences?.notifications !== undefined
+              ? userInfo.preferences.notifications
+              : true,
+          smsUpdates:
+            userInfo.preferences?.smsUpdates !== undefined
+              ? userInfo.preferences.smsUpdates
+              : false,
         },
-      });
+      }));
+      setPreviewPhoto(userInfo.photoURL || null);
     }
   }, [userInfo]);
 
@@ -98,79 +111,59 @@ export default function ProfilePage() {
   }
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-
-    if (name.includes("address.")) {
-      const addressField = name.split(".")[1];
-      setProfileData((prev) => ({
-        ...prev,
-        address: {
-          ...prev.address,
-          [addressField]: value,
-        },
+    const { name, value, type, checked } = e.target;
+    if (name.startsWith("address.")) {
+      const key = name.split(".")[1];
+      setProfileData((p) => ({
+        ...p,
+        address: { ...p.address, [key]: value },
       }));
-    } else if (name.includes("preferences.")) {
-      const prefField = name.split(".")[1];
-      setProfileData((prev) => ({
-        ...prev,
-        preferences: {
-          ...prev.preferences,
-          [prefField]: e.target.type === "checkbox" ? e.target.checked : value,
-        },
-      }));
-    } else {
-      setProfileData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      return;
     }
+    if (name.startsWith("preferences.")) {
+      const key = name.split(".")[1];
+      setProfileData((p) => ({
+        ...p,
+        preferences: {
+          ...p.preferences,
+          [key]: type === "checkbox" ? checked : value,
+        },
+      }));
+      return;
+    }
+    setProfileData((p) => ({ ...p, [name]: value }));
   };
 
   const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/")) return toast.error("Not an image");
+    if (file.size > 5 * 1024 * 1024) return toast.error("Max 5MB");
 
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select a valid image file", {
-        duration: 3000,
-        icon: "❌",
-      });
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image size must be less than 5MB", {
-        duration: 3000,
-        icon: "❌",
-      });
-      return;
-    }
-
+    // Optimistic preview
+    const localUrl = URL.createObjectURL(file);
+    setPreviewPhoto(localUrl);
     setIsUploading(true);
-
     try {
-      const result = await uploadProfileImage(userInfo.uid, file);
-
-      if (result.success) {
-        dispatch(updateUser({ photoURL: result.photoURL }));
-        toast.success("Profile picture updated successfully!", {
-          duration: 3000,
-          icon: "✅",
-        });
-      } else {
-        toast.error(result.error, {
-          duration: 4000,
-          icon: "❌",
-        });
+      const result = await uploadProfileImage(
+        userInfo.uid || userInfo.id,
+        file
+      );
+      if (!result.success) {
+        setPreviewPhoto(userInfo.photoURL || null);
+        return toast.error(result.error || "Upload failed");
       }
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      toast.error("Failed to upload image", {
-        duration: 4000,
-        icon: "❌",
-      });
+      dispatch(
+        updateUser({
+          ...userInfo,
+          photoURL: result.photoURL,
+        })
+      );
+      toast.success("Photo updated");
+    } catch (err) {
+      console.error(err);
+      setPreviewPhoto(userInfo.photoURL || null);
+      toast.error("Upload error");
     } finally {
       setIsUploading(false);
     }
@@ -178,65 +171,67 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     setIsSaving(true);
-
     try {
-      const result = await updateUserProfile(userInfo.uid, profileData);
-
-      if (result.success) {
-        dispatch(updateUser(profileData));
-        setIsEditing(false);
-        toast.success("Profile updated successfully!", {
-          duration: 3000,
-          icon: "✅",
-          style: {
-            borderRadius: "10px",
-            background: "#10b981",
-            color: "#fff",
-          },
-        });
-      } else {
-        toast.error(result.error, {
-          duration: 4000,
-          icon: "❌",
-          style: {
-            borderRadius: "10px",
-            background: "#ef4444",
-            color: "#fff",
-          },
-        });
-      }
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast.error("Failed to update profile", {
-        duration: 4000,
-        icon: "❌",
-      });
+      const payload = {
+        displayName: profileData.displayName.trim(),
+        phone: profileData.phone.trim(),
+        dateOfBirth: profileData.dateOfBirth || "",
+        gender: profileData.gender || "",
+        address: { ...profileData.address },
+        preferences: { ...profileData.preferences },
+      };
+      const res = await updateUserProfile(userInfo.uid || userInfo.id, payload);
+      if (!res.success) throw new Error(res.error || "Update failed");
+      dispatch(
+        updateUser({
+          ...userInfo,
+          ...payload,
+        })
+      );
+      console.log({ ...userInfo, ...payload });
+      setIsEditing(false);
+      toast.success("Profile saved");
+    } catch (e) {
+      toast.error(e.message);
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleCancel = () => {
-    // Reset form data to original user info
-    setProfileData({
-      displayName: userInfo.displayName || "",
-      email: userInfo.email || "",
-      phone: userInfo.phone || "",
-      dateOfBirth: userInfo.dateOfBirth || "",
-      gender: userInfo.gender || "",
-      address: userInfo.address || {
-        street: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        country: "",
-      },
-      preferences: userInfo.preferences || {
-        newsletter: true,
-        notifications: true,
-        smsUpdates: false,
-      },
-    });
+    if (userInfo) {
+      setProfileData((prev) => prev); // will be reset by effect if userInfo changed
+      // Re-run normalization explicitly:
+      setProfileData({
+        displayName: userInfo.displayName || userInfo.fullName || "",
+        email: userInfo.email || "",
+        phone: userInfo.phone || "",
+        dateOfBirth: userInfo.dateOfBirth || "",
+        gender: userInfo.gender || "",
+        address: {
+          street: userInfo.address?.street || "",
+          city: userInfo.address?.city || "",
+          state: userInfo.address?.state || "",
+          zipCode: userInfo.address?.zipCode || "",
+          country: userInfo.address?.country || "",
+        },
+        preferences: {
+          newsletter:
+            userInfo.preferences?.newsletter !== undefined
+              ? userInfo.preferences.newsletter
+              : true,
+          notifications:
+            userInfo.preferences?.notifications !== undefined
+              ? userInfo.preferences.notifications
+              : true,
+          smsUpdates:
+            userInfo.preferences?.smsUpdates !== undefined
+              ? userInfo.preferences.smsUpdates
+              : false,
+        },
+      });
+      setPreviewPhoto(userInfo.photoURL || null);
+    }
     setIsEditing(false);
   };
 
@@ -249,34 +244,33 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-4">
                 <div className="relative">
-                  <div className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
-                    {userInfo.photoURL ? (
+                  <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-white shadow">
+                    {previewPhoto ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={userInfo.photoURL}
-                        alt={userInfo.displayName}
+                        src={previewPhoto}
+                        alt="Avatar"
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <User className="w-8 h-8 text-gray-600" />
+                      <User className="w-10 h-10 text-gray-500" />
+                    )}
+                    {isUploading && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <div className="h-6 w-6 border-2 border-white border-b-transparent rounded-full animate-spin" />
+                      </div>
                     )}
                   </div>
-
-                  {/* Upload button */}
-                  <label className="absolute -bottom-2 -right-2 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 transition-colors">
+                  <label className="absolute -bottom-2 -right-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full cursor-pointer shadow transition">
                     <Camera className="w-4 h-4" />
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleImageUpload}
                       className="hidden"
+                      disabled={isUploading}
                     />
                   </label>
-
-                  {isUploading && (
-                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                    </div>
-                  )}
                 </div>
 
                 <div>

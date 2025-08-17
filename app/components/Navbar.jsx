@@ -11,9 +11,14 @@ import {
   FiHeart,
 } from "react-icons/fi";
 import { ChevronDown, HeartIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 const Navbar = () => {
+  const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Check if the current path is the home page
+  const isHomePage = pathname === "/";
 
   // Get cart count from Redux store
   const cartItems = useSelector((state) => state.cart.items);
@@ -33,6 +38,9 @@ const Navbar = () => {
     { href: "/about", label: "About" },
     { href: "/contact", label: "Contact" },
   ];
+  if (!isHomePage) {
+    return <></>; // Do not render the Navbar on the home page
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">

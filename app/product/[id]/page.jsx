@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation"; // <-- added useRouter
 import { useDispatch, useSelector } from "react-redux";
 import Image from "next/image";
 import {
@@ -39,6 +39,7 @@ const Skeleton = ({ className = "" }) => (
 
 export default function ProductPage() {
   const { id } = useParams();
+  const router = useRouter(); // <-- router instance
   const dispatch = useDispatch();
 
   const { items: wishlistItems } = useSelector((s) => s.wishlist);
@@ -54,6 +55,7 @@ export default function ProductPage() {
   const [loading, setLoading] = useState(true);
   const [imgZoom, setImgZoom] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false); // <-- new state
   const zoomRef = useRef(null);
 
   const isInWishlist = wishlistItems.some((w) => w.id === id);
@@ -131,6 +133,7 @@ export default function ProductPage() {
       })
     );
     toast.success("Added to cart");
+    setAddedToCart(true); // <-- set flag
   };
 
   const toggleWishlist = () => {
@@ -536,17 +539,43 @@ export default function ProductPage() {
 
                 {/* CTAs */}
                 <div className="flex flex-col gap-3">
-                  <button
-                    onClick={addToCartHandler}
-                    disabled={
-                      !selectedSize || !selectedColor || selectedStock === 0
-                    }
-                    className="group relative inline-flex items-center justify-center gap-3 rounded-2xl bg-neutral-900 text-white px-8 py-4 font-medium tracking-wide shadow-lg shadow-neutral-900/10 hover:bg-neutral-800 disabled:bg-neutral-300 disabled:cursor-not-allowed transition"
-                  >
-                    <ShoppingCart className="w-5 h-5 group-hover:scale-110 transition" />
-                    {selectedStock === 0 ? "Out of Stock" : "Add to Cart"}
-                    <span className="absolute inset-0 rounded-2xl ring-2 ring-transparent group-hover:ring-neutral-700 transition" />
-                  </button>
+                  {addedToCart ? (
+                    <div className="flex flex-col gap-3">
+                      <button
+                        onClick={() => router.push("/cart")}
+                        className="group inline-flex items-center justify-center gap-3 rounded-2xl bg-blue-600 text-white px-8 py-4 font-medium shadow hover:bg-blue-500 transition"
+                      >
+                        <ShoppingCart className="w-5 h-5" />
+                        Proceed to Cart
+                      </button>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setAddedToCart(false)}
+                          className="flex-1 h-12 rounded-xl border border-neutral-300 bg-white hover:bg-neutral-50 text-sm font-medium transition"
+                        >
+                          Add More
+                        </button>
+                        <button
+                          onClick={() => router.push("/")}
+                          className="flex-1 h-12 rounded-xl bg-neutral-900 text-white hover:bg-neutral-800 text-sm font-medium transition"
+                        >
+                          Continue Shopping
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={addToCartHandler}
+                      disabled={
+                        !selectedSize || !selectedColor || selectedStock === 0
+                      }
+                      className="group relative inline-flex items-center justify-center gap-3 rounded-2xl bg-neutral-900 text-white px-8 py-4 font-medium tracking-wide shadow-lg shadow-neutral-900/10 hover:bg-neutral-800 disabled:bg-neutral-300 disabled:cursor-not-allowed transition"
+                    >
+                      <ShoppingCart className="w-5 h-5 group-hover:scale-110 transition" />
+                      {selectedStock === 0 ? "Out of Stock" : "Add to Cart"}
+                      <span className="absolute inset-0 rounded-2xl ring-2 ring-transparent group-hover:ring-neutral-700 transition" />
+                    </button>
+                  )}
                   <div className="grid grid-cols-3 gap-3">
                     <button
                       onClick={toggleWishlist}

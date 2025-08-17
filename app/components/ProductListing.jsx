@@ -347,7 +347,7 @@ export function ProductListing() {
                   const inWishlist = isProductInWishlist(product.id);
 
                   return (
-                    <Link
+                    <div
                       href={`/product/${product.id}`}
                       key={product.id}
                       className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white border border-gray-200 rounded-lg overflow-hidden"
@@ -453,39 +453,18 @@ export function ProductListing() {
                           </span>
 
                           {/* Dynamic Cart Button */}
-                          {inCart ? (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                                Qty: {cartQuantity}
-                              </span>
-                              <button
-                                onClick={() =>
-                                  handleRemoveFromCart(
-                                    product.id,
-                                    selectedColor
-                                  )
-                                }
-                                className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center gap-2"
-                              >
-                                <Minus className="h-4 w-4" />
-                                Remove
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() =>
-                                handleAddToCart(product, selectedColor)
-                              }
-                              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
-                              disabled={product.stock === 0}
-                            >
-                              <ShoppingCart className="h-4 w-4" />
-                              Add to Cart
-                            </button>
-                          )}
+
+                          <Link
+                            href={`/product/${product.id}`}
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+                            disabled={product.stock === 0}
+                          >
+                            <ShoppingCart className="h-4 w-4" />
+                            Explore
+                          </Link>
                         </div>
                       </div>
-                    </Link>
+                    </div>
                   );
                 })}
               </div>

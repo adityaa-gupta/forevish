@@ -47,6 +47,7 @@ const createUserProfile = async (user, additionalData = {}) => {
           zipCode: "",
           country: "",
         },
+        orders: [], // <-- added orders array
         createdAt,
         updatedAt: createdAt,
         isActive: true,
