@@ -46,6 +46,7 @@ export { app, db, auth, googleProvider, GoogleAuthProvider };
 
 // ---- Product helper (fetch product by id) ----
 import { doc, getDoc } from "firebase/firestore";
+import FooterComponent from "../components/FooterComponent";
 
 /**
  * Fetch a single product by its Firestore document ID.
@@ -151,6 +152,7 @@ export function Providers({ children }) {
       {/* Main app content */}
       <Navbar />
       {children}
+      <FooterComponent />
     </Provider>
   );
 }
