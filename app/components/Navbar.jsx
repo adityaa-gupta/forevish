@@ -373,7 +373,7 @@ const Navbar = () => {
                   </div>
                 </div>
               ) : (
-                <Link href="/login">
+                <Link href="/auth">
                   <button className="w-full h-10 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition">
                     Login / Sign Up
                   </button>

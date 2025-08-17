@@ -34,7 +34,7 @@ export default function CheckoutPage() {
     if (!authLoading) {
       if (!isLoggedIn) {
         toast.error("Please login first");
-        router.push("/login?redirect=/checkout");
+        router.push("/auth?redirect=/checkout");
       } else if (userInfo) {
         setForm((f) => ({
           ...f,
