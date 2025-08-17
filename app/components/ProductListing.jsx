@@ -258,7 +258,7 @@ export function ProductListing() {
         <div className="container mx-auto px-4 py-8">
           <div className="flex gap-8">
             {/* Loading skeleton remains the same */}
-            <ProductFilter onFilterChange={handleFilterChange} />
+            {/* <ProductFilter onFilterChange={handleFilterChange} /> */}
             <main className="flex-1">
               <div className="animate-pulse">
                 <div className="h-8 bg-gray-200 rounded w-64 mb-8"></div>
