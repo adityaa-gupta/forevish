@@ -67,15 +67,15 @@ const Navbar = () => {
       .toUpperCase();
   })();
 
-  const isProductPage = pathname === pathname.startsWith("/products/");
+  const isProductPage = pathname == pathname.startsWith("/product/");
 
   const cartItems = useSelector((state) => state.cart.items);
   const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   const wishlistItems = useSelector((state) => state.wishlist.items);
   const wishlistCount = wishlistItems.length;
-
-  if (isProductPage) {
+  console.log(isProductPage, pathname, pathname.startsWith("/product/"));
+  if (pathname.startsWith("/product/")) {
     return <></>;
   }
 
