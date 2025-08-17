@@ -44,6 +44,48 @@ try {
 // Export Firebase services (no storage since we use Supabase)
 export { app, db, auth, googleProvider, GoogleAuthProvider };
 
+// ---- Product helper (fetch product by id) ----
+import { doc, getDoc } from "firebase/firestore";
+
+/**
+ * Fetch a single product by its Firestore document ID.
+ * @param {string} productId
+ * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+ */
+export async function fetchProductById(productId) {
+  if (!productId) {
+    return { success: false, error: "Missing productId" };
+  }
+  if (!db) {
+    return { success: false, error: "Firestore not initialized" };
+  }
+  try {
+    const ref = doc(db, "products", productId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      return { success: false, error: "Product not found" };
+    }
+    const data = snap.data();
+    return {
+      success: true,
+      data: {
+        id: snap.id,
+        ...data,
+        // Normalize optional fields
+        mainImages: data.mainImages || [],
+        variants: data.variants || [],
+        category: data.category || "",
+        price: data.price ?? 0,
+        discountPrice: data.discountPrice ?? null,
+        originalPrice: data.originalPrice ?? data.price ?? 0,
+      },
+    };
+  } catch (e) {
+    return { success: false, error: e.message || "Failed to fetch product" };
+  }
+}
+// ---- end product helper ----
+
 // Auth State Manager Component
 function AuthStateManager() {
   const dispatch = useDispatch();
