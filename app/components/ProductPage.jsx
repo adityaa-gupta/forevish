@@ -17,12 +17,12 @@ import {
   ChevronLeft,
   ChevronRight,
   BadgePercent,
-  Copy,
   Check,
   Sparkles,
   Eye,
 } from "lucide-react";
-import { getProductById } from "@/app/lib/services/products";
+// Removed client fetch import – data comes from server parent
+// import { getProductById } from "@/app/lib/services/products";
 import { addItemToCart } from "@/app/_store/features/cartSlice";
 import {
   addToWishlist,
@@ -37,56 +37,47 @@ const Skeleton = ({ className = "" }) => (
   />
 );
 
-export default function ProductPageClient({ id }) {
+export default function ProductPageClient({ id, initialProduct }) {
   const router = useRouter();
   const dispatch = useDispatch();
 
   const { items: wishlistItems } = useSelector((s) => s.wishlist);
   const { isLoggedIn } = useSelector((s) => s.user);
 
-  const [product, setProduct] = useState(null);
-  const [selectedImages, setSelectedImages] = useState([]);
+  // Initialize from server-provided product
+  const [product, setProduct] = useState(initialProduct || null);
+  const [selectedImages, setSelectedImages] = useState(
+    initialProduct?.mainImages || []
+  );
   const [currentImage, setCurrentImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedStock, setSelectedStock] = useState(0);
   const [qty, setQty] = useState(1);
-  const [loading, setLoading] = useState(true);
+  // Loading removed – server already provided data
   const [imgZoom, setImgZoom] = useState(false);
   const [copied, setCopied] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
   const zoomRef = useRef(null);
 
-  const isInWishlist = wishlistItems.some((w) => w.id === id);
-
-  const fetchProduct = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    const res = await getProductById(id);
-    if (res.success) {
-      const p = res.data;
-      setProduct(p);
-      const baseImgs = p.mainImages || [];
-      setSelectedImages(baseImgs);
-      if (p.variants?.length) {
-        const v = p.variants[0];
-        setSelectedSize(v.size);
-        if (v.colors?.length) {
-          const c = v.colors[0];
-          setSelectedColor(c.color);
-          setSelectedStock(c.stock);
-          if (c.images?.length) setSelectedImages(c.images);
-        }
-      }
-    } else {
-      toast.error(res.error || "Product not found");
-    }
-    setLoading(false);
-  }, [id]);
-
+  // Derive initial variant selection when product is set
   useEffect(() => {
-    fetchProduct();
-  }, [fetchProduct]);
+    if (!product) return;
+    if (product.variants?.length && !selectedSize) {
+      const v = product.variants[0];
+      setSelectedSize(v.size);
+      if (v.colors?.length) {
+        const c = v.colors[0];
+        setSelectedColor(c.color);
+        setSelectedStock(c.stock);
+        if (c.images?.length) setSelectedImages(c.images);
+      }
+    } else if (!product.variants?.length) {
+      setSelectedStock(product.stock || 0);
+    }
+  }, [product, selectedSize]);
+
+  const isInWishlist = wishlistItems.some((w) => w.id === id);
 
   const handleSize = (size) => {
     setSelectedSize(size);
@@ -112,21 +103,23 @@ export default function ProductPageClient({ id }) {
   };
 
   const addToCartHandler = () => {
-    if (!selectedSize || !selectedColor)
-      return toast.error("Select size & color");
+    if (!selectedSize && product.variants?.length)
+      return toast.error("Select size");
+    if (!selectedColor && product.variants?.length)
+      return toast.error("Select color");
     if (selectedStock === 0) return toast.error("Out of stock");
     if (qty > selectedStock)
       return toast.error(`Only ${selectedStock} available`);
     dispatch(
       addItemToCart({
-        id: `${product.id}_${selectedSize}_${selectedColor}`,
+        id: `${product.id}_${selectedSize || "NA"}_${selectedColor || "NA"}`,
         productId: product.id,
         name: product.name,
         price: product.discountPrice || product.price,
         originalPrice: product.originalPrice || product.price,
         image: selectedImages[0] || "",
-        size: selectedSize,
-        color: selectedColor,
+        size: selectedSize || null,
+        color: selectedColor || null,
         quantity: qty,
         stock: selectedStock,
         category: product.category,
@@ -164,6 +157,7 @@ export default function ProductPageClient({ id }) {
     : 0;
 
   const handleCopyLink = () => {
+    if (typeof window === "undefined") return;
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
@@ -178,30 +172,7 @@ export default function ProductPageClient({ id }) {
     zoomRef.current.style.setProperty("--zoom-y", `${y}%`);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-neutral-50 via-white to-neutral-100">
-        <div className="max-w-7xl mx-auto px-4 py-12 grid gap-10 lg:grid-cols-2">
-          <div className="space-y-6">
-            <Skeleton className="w-full aspect-square" />
-            <div className="grid grid-cols-4 gap-3">
-              {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="aspect-square" />
-              ))}
-            </div>
-          </div>
-          <div className="space-y-6">
-            <Skeleton className="h-10 w-2/3" />
-            <Skeleton className="h-6 w-1/4" />
-            <Skeleton className="h-14 w-1/2" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-16 w-full" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // If server failed to provide product
   if (!product) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-50">
@@ -555,7 +526,15 @@ export default function ProductPageClient({ id }) {
                     <button
                       onClick={addToCartHandler}
                       disabled={
-                        !selectedSize || !selectedColor || selectedStock === 0
+                        (product.variants?.length &&
+                          (!selectedSize ||
+                            (product.variants?.length &&
+                              !selectedColor &&
+                              product.variants.some(
+                                (v) =>
+                                  v.size === selectedSize && v.colors?.length
+                              )))) ||
+                        selectedStock === 0
                       }
                       className="group relative inline-flex items-center justify-center gap-3 rounded-2xl bg-neutral-900 text-white px-8 py-4 font-medium tracking-wide shadow-lg shadow-neutral-900/10 hover:bg-neutral-800 disabled:bg-neutral-300 disabled:cursor-not-allowed transition"
                     >
@@ -636,8 +615,8 @@ export default function ProductPageClient({ id }) {
 
         {process.env.NODE_ENV === "development" && (
           <div className="mt-12 text-xs text-neutral-500">
-            Debug: {selectedSize}/{selectedColor} stock:{selectedStock} qty:
-            {qty}
+            Debug: {selectedSize || "—"}/{selectedColor || "—"} stock:
+            {selectedStock} qty:{qty}
           </div>
         )}
       </div>

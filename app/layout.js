@@ -109,11 +109,48 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://forevish.vercel.app/#organization",
+        name: "Forevish",
+        url: "https://forevish.vercel.app/",
+        logo: {
+          "@type": "ImageObject",
+          url: "https://forevish.vercel.app/icons/icon-512.png",
+        },
+        sameAs: [
+          "https://instagram.com/forevish",
+          "https://twitter.com/forevish",
+          "https://facebook.com/forevish",
+        ],
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://forevish.vercel.app/#website",
+        url: "https://forevish.vercel.app/",
+        name: "Forevish",
+        potentialAction: {
+          "@type": "SearchAction",
+          target: "https://forevish.vercel.app/search?q={search_term_string}",
+          "query-input": "required name=search_term_string",
+        },
+      },
+    ],
+  };
   return (
     <html
       lang="en"
       className={`${geist.variable} ${manrope.variable} antialiased`}
     >
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body>
         <Providers>{children}</Providers>
       </body>

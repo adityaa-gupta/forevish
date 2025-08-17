@@ -117,7 +117,7 @@ export function ProductListing() {
       if (result.success) {
         const transformedProducts = result.data.map(transformProduct);
         setProducts(transformedProducts);
-        console.log("Products fetched successfully:", transformedProducts);
+        // console.log("Products fetched successfully:", transformedProducts);
       } else {
         throw new Error(result.error || "Failed to fetch products");
       }
