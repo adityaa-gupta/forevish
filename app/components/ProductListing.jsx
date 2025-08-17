@@ -16,6 +16,7 @@ import {
 import { setFilterLoading } from "../_store/features/filterSlice";
 import ProductFilter from "./ProductFilter";
 import Link from "next/link";
+import formatPrice from "../lib/helpers/formatPrice";
 
 export function ProductListing() {
   // State for products
@@ -412,11 +413,11 @@ export function ProductListing() {
 
                         <div className="flex items-center gap-2 mb-3">
                           <span className="text-2xl font-bold text-gray-900">
-                            ${product.price}
+                            {formatPrice(product.price)}
                           </span>
                           {product.originalPrice && (
                             <span className="text-lg text-gray-500 line-through">
-                              ${product.originalPrice}
+                              {formatPrice(product.originalPrice)}
                             </span>
                           )}
                         </div>

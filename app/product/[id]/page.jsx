@@ -29,6 +29,7 @@ import {
   removeFromWishlist,
 } from "@/app/_store/features/wishlistSlice";
 import toast from "react-hot-toast";
+import formatPrice from "@/app/lib/helpers/formatPrice"; // <-- added
 
 /* Lightweight shimmer skeleton */
 const Skeleton = ({ className = "" }) => (
@@ -394,23 +395,23 @@ export default function ProductPage() {
               <div className="space-y-2">
                 <div className="flex items-end gap-3">
                   <span className="text-4xl font-bold bg-gradient-to-r from-neutral-900 to-neutral-600 bg-clip-text text-transparent">
-                    ${(product.discountPrice || product.price).toFixed(2)}
+                    {formatPrice(product.discountPrice || product.price)}
                   </span>
                   {product.originalPrice &&
                     product.originalPrice >
                       (product.discountPrice || product.price) && (
                       <div className="flex items-center gap-2">
                         <span className="text-lg line-through text-neutral-400">
-                          ${product.originalPrice.toFixed(2)}
+                          {formatPrice(product.originalPrice)}
                         </span>
                         <span className="px-2 py-1 rounded bg-emerald-100 text-emerald-700 text-xs font-semibold">
-                          Save ${savings.toFixed(2)}
+                          Save {formatPrice(savings)}
                         </span>
                       </div>
                     )}
                 </div>
                 <p className="text-xs text-neutral-500">
-                  Taxes calculated at checkout. Free shipping over $100.
+                  Taxes calculated at checkout. Free shipping over ₹100 (value).
                 </p>
               </div>
 
