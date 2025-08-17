@@ -53,7 +53,8 @@ export async function generateMetadata({ params }) {
     `Discover ${p.name} from Forevish premium women's professional collection.`;
   const description =
     rawDesc.length > 155 ? rawDesc.slice(0, 152).trim() + "..." : rawDesc;
-  const images = buildImages(p);
+  // console.log(p, " pppp");
+  const images = p?.mainImages?.[0];
 
   return {
     title,
@@ -69,7 +70,7 @@ export async function generateMetadata({ params }) {
       card: "summary_large_image",
       title,
       description,
-      images: images.map((i) => i.url),
+      images,
     },
   };
 }
@@ -77,6 +78,10 @@ export async function generateMetadata({ params }) {
 // Optional ISR (uncomment if you want periodic revalidation)
 // export const revalidate = 300;
 
-export default function ProductPageWrapper({ params }) {
+export default async function ProductPageWrapper({ params }) {
+  // const res = await getProductByIdServer(params.id);
+  // const initialProduct = res.success ? res.data : null;
+  // console.log("ProductPageWrapper initialProduct", initialProduct);
+  // initialProduct={initialProduct}
   return <ProductPageClient id={params.id} />;
 }
