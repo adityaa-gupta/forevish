@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Heart, ShoppingCart } from "lucide-react";
 import {
@@ -193,6 +193,22 @@ export function ProductListing({ initialProducts = [], fetchError = null }) {
     }
   });
 
+  // Add pagination state & derived values
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 6;
+  const totalPages = Math.ceil(sortedProducts.length / PAGE_SIZE) || 1;
+  const currentProducts = useMemo(
+    () =>
+      sortedProducts.slice(
+        (page - 1) * PAGE_SIZE,
+        (page - 1) * PAGE_SIZE + PAGE_SIZE
+      ),
+    [sortedProducts, page]
+  );
+  useEffect(() => {
+    setPage(1);
+  }, [filters, sortedProducts.length]);
+
   if (fetchError) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -231,7 +247,7 @@ export function ProductListing({ initialProducts = [], fetchError = null }) {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {sortedProducts.map((product) => {
+                {currentProducts.map((product) => {
                   const selectedColor =
                     selectedColors[product.id] || product.colors[0]?.value;
                   const currentColor =
@@ -350,6 +366,70 @@ export function ProductListing({ initialProducts = [], fetchError = null }) {
                     </div>
                   );
                 })}
+              </div>
+            )}
+            {sortedProducts.length > 0 && totalPages > 1 && (
+              <div className="mt-10 flex items-center justify-center gap-2 flex-wrap">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className={`px-3 py-2 rounded border text-sm ${
+                    page === 1
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-white hover:bg-gray-50"
+                  }`}
+                >
+                  Prev
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (p) => {
+                    // Show first, last, current, neighbors; collapse others
+                    if (
+                      p === 1 ||
+                      p === totalPages ||
+                      Math.abs(p - page) <= 1
+                    ) {
+                      return (
+                        <button
+                          key={p}
+                          onClick={() => setPage(p)}
+                          className={`w-10 h-10 rounded border text-sm font-medium ${
+                            p === page
+                              ? "bg-blue-600 text-white border-blue-600"
+                              : "bg-white hover:bg-gray-50"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      );
+                    }
+                    if (
+                      (p === 2 && page > 3) ||
+                      (p === totalPages - 1 && page < totalPages - 2)
+                    ) {
+                      return (
+                        <span
+                          key={p}
+                          className="px-2 text-gray-400 select-none"
+                        >
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  }
+                )}
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className={`px-3 py-2 rounded border text-sm ${
+                    page === totalPages
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-white hover:bg-gray-50"
+                  }`}
+                >
+                  Next
+                </button>
               </div>
             )}
           </main>
