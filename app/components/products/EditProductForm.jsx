@@ -213,11 +213,11 @@ const EditProductForm = ({ initialData }) => {
   // Reset form when initialData changes
   useEffect(() => {
     if (initialData) {
-      console.log("Setting form data:", initialData);
+      "Setting form data:", initialData;
 
       // Convert old structure to new structure if needed
       const convertedData = convertOldToNewStructure(initialData);
-      console.log("Converted data:", convertedData);
+      "Converted data:", convertedData;
 
       // Calculate discount percentage if both prices exist
       let discountPercentage = 0;
@@ -413,7 +413,7 @@ const EditProductForm = ({ initialData }) => {
         updatedAt: new Date().toISOString(),
       };
 
-      console.log("Submitting form data:", formData);
+      "Submitting form data:", formData;
 
       const result = await updateProduct(initialData.id, formData);
 

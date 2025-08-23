@@ -101,6 +101,50 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* About Forevish (new) */}
+      <section className="max-w-6xl mx-auto px-5 mb-24">
+        <div className="rounded-3xl border border-neutral-200 bg-white/70 backdrop-blur p-8 sm:p-10 shadow-sm">
+          <span className="inline-block px-4 py-1.5 rounded-full bg-neutral-900 text-white text-xs tracking-wide">
+            About Forevish
+          </span>
+          <h2 className="mt-4 text-2xl sm:text-3xl font-semibold tracking-tight text-neutral-900">
+            Young. Stylish. Modern.
+          </h2>
+          <div className="mt-4 space-y-4 text-neutral-600 text-sm leading-relaxed">
+            <p>
+              Forevish is a women’s clothing brand that celebrates the spirit of
+              today’s Indian woman—free, independent, and effortlessly
+              fashionable. Our collections bring together the best of ethnic and
+              fusion wear, thoughtfully curated to stay in tune with global
+              trends while keeping comfort at heart.
+            </p>
+
+            <h3 className="pt-4 text-sm font-semibold tracking-wide text-neutral-800 uppercase">
+              Our Philosophy
+            </h3>
+            <p>
+              We believe in stories over seasons, personal style over passing
+              trends, and comfort over appearance. Every design is an expression
+              of individuality, meant to be worn your way.
+            </p>
+
+            <h3 className="pt-4 text-sm font-semibold tracking-wide text-neutral-800 uppercase">
+              Our Forte
+            </h3>
+            <p>
+              Kurtas are at the core of what we do, paired with a wide range of
+              bottoms and dupattas—giving you endless ways to mix, match, and
+              create your perfect ensemble.
+            </p>
+
+            <p className="pt-2">
+              At Forevish, fashion isn’t just what you wear. It’s how you
+              feel—forever stylish, forever you.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Story */}
       <section className="max-w-6xl mx-auto px-5 mb-24 grid lg:grid-cols-2 gap-16 items-start">
         <div className="space-y-6">
@@ -127,7 +171,7 @@ export default function AboutPage() {
         <div className="relative">
           <div className="aspect-[4/5] rounded-3xl overflow-hidden border border-neutral-200 shadow-sm bg-neutral-100">
             <img
-              src="https://images.unsplash.com/photo-1559589689-577aabd1db4e?auto=format&fit=crop&w=900&q=60"
+              src="https://images.unsplash.com/photo-1743708825990-5ee3b68d82e2?q=80&w=3087&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
               alt="Tailoring studio"
               className="w-full h-full object-cover"
               loading="lazy"
@@ -135,7 +179,7 @@ export default function AboutPage() {
           </div>
           <div className="absolute -bottom-6 -right-6 w-48 rounded-2xl overflow-hidden border border-neutral-200 shadow bg-white">
             <img
-              src="https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=60"
+              src="https://images.unsplash.com/photo-1562505208-0b9bad881640?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
               alt="Fabric details"
               className="h-32 w-full object-cover"
               loading="lazy"

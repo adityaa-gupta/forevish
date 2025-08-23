@@ -23,7 +23,7 @@ export default function ProfilePage() {
   const { userInfo, isLoggedIn, loading } = useSelector((state) => state.user);
   const dispatch = useDispatch();
   const router = useRouter();
-  console.log("userInfo in ProfilePage", userInfo);
+  "userInfo in ProfilePage", userInfo;
 
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -188,7 +188,7 @@ export default function ProfilePage() {
           ...payload,
         })
       );
-      console.log({ ...userInfo, ...payload });
+      ({ ...userInfo, ...payload });
       setIsEditing(false);
       toast.success("Profile saved");
     } catch (e) {

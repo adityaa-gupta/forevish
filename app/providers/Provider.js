@@ -35,8 +35,8 @@ try {
   googleProvider.addScope("email");
   googleProvider.addScope("profile");
 
-  console.log("✅ Firebase initialized successfully (Auth + Firestore)");
-  console.log("📁 Using Supabase for storage");
+  ("✅ Firebase initialized successfully (Auth + Firestore)");
+  ("📁 Using Supabase for storage");
 } catch (error) {
   console.error("❌ Firebase initialization failed:", error);
 }
@@ -196,16 +196,13 @@ function AuthStateManager() {
       return;
     }
 
-    console.log("🔄 Setting up auth state listener...");
+    ("🔄 Setting up auth state listener...");
 
     // Set up auth state persistence listener
     const unsubscribe = onAuthStateChanged(
       auth,
       (user) => {
-        console.log(
-          "🔐 Auth state changed:",
-          user ? "User logged in" : "User logged out"
-        );
+        "🔐 Auth state changed:", user ? "User logged in" : "User logged out";
 
         if (user) {
           // User is signed in
@@ -233,7 +230,7 @@ function AuthStateManager() {
 
     // Cleanup subscription on unmount
     return () => {
-      console.log("🧹 Cleaning up auth state listener");
+      ("🧹 Cleaning up auth state listener");
       unsubscribe();
     };
   }, [dispatch]);

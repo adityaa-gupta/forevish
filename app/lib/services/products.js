@@ -100,7 +100,7 @@ const deleteImages = async (imageUrls) => {
 
 // Create a new product
 // export const createProduct = async (productData) => {
-//   console.log("Creating product with data:", productData);
+//   ("Creating product with data:", productData);
 //   try {
 //     // Upload main images
 //     let mainImageUrls = [];
@@ -152,7 +152,7 @@ const deleteImages = async (imageUrls) => {
 //       updatedAt: serverTimestamp(),
 //     };
 
-//     console.log("Creating product with data:", productDocument);
+//     ("Creating product with data:", productDocument);
 
 //     const docRef = await addDoc(
 //       collection(db, COLLECTION_NAME),
@@ -173,7 +173,7 @@ const deleteImages = async (imageUrls) => {
 //   }
 // };
 export const createProduct = async (productData) => {
-  console.log("Creating product with data:", productData);
+  "Creating product with data:", productData;
   try {
     // Upload main images
     let mainImageUrls = [];
@@ -233,7 +233,7 @@ export const createProduct = async (productData) => {
       updatedAt: serverTimestamp(),
     };
 
-    console.log("Final product document:", productDocument);
+    "Final product document:", productDocument;
 
     const docRef = await addDoc(
       collection(db, COLLECTION_NAME),
@@ -283,9 +283,9 @@ export const getAllProducts = async () => {
 // Get a single product by ID
 // Get a single product by ID (updated with better error handling)
 export const getProductById = async (productId) => {
-  console.log("🔍 Fetching product by ID:", productId);
-  console.log("Product ID type:", typeof productId);
-  console.log("Collection name:", COLLECTION_NAME);
+  "🔍 Fetching product by ID:", productId;
+  "Product ID type:", typeof productId;
+  "Collection name:", COLLECTION_NAME;
 
   try {
     // Check if db is initialized
@@ -299,13 +299,13 @@ export const getProductById = async (productId) => {
       throw new Error("Invalid product ID provided");
     }
 
-    console.log("✅ Firestore db is available:", !!db);
+    "✅ Firestore db is available:", !!db;
 
     const docRef = doc(db, COLLECTION_NAME, productId);
-    console.log("📄 Document reference created:", docRef.path);
+    "📄 Document reference created:", docRef.path;
 
     const docSnap = await getDoc(docRef);
-    console.log("📋 Document snapshot exists:", docSnap.exists());
+    "📋 Document snapshot exists:", docSnap.exists();
 
     if (docSnap.exists()) {
       const productData = {
@@ -313,17 +313,14 @@ export const getProductById = async (productId) => {
         ...docSnap.data(),
       };
 
-      console.log(
-        "✅ Product data retrieved:",
-        productData.name || "Unnamed Product"
-      );
+      "✅ Product data retrieved:", productData.name || "Unnamed Product";
 
       return {
         success: true,
         data: productData,
       };
     } else {
-      console.log("❌ Document does not exist for ID:", productId);
+      "❌ Document does not exist for ID:", productId;
       return {
         success: false,
         error: "Product not found",

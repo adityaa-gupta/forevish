@@ -8,6 +8,19 @@ const nextConfig = {
         port: "",
         pathname: "/storage/v1/object/public/**",
       },
+      // Use direct Unsplash image hosts
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "plus.unsplash.com",
+        port: "",
+        pathname: "/**",
+      },
       {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",

@@ -155,7 +155,7 @@ export const uploadProfileImage = async (uid, file) => {
       throw new Error("Image size must be less than 5MB");
     }
 
-    console.log("🔄 Uploading profile image to Supabase...");
+    ("🔄 Uploading profile image to Supabase...");
 
     // Delete existing profile image if it exists
     try {
@@ -165,7 +165,7 @@ export const uploadProfileImage = async (uid, file) => {
       if (userDoc.exists()) {
         const userData = userDoc.data();
         if (userData.photoURL && userData.photoURL.includes("supabase")) {
-          console.log("🗑️ Deleting old profile image...");
+          ("🗑️ Deleting old profile image...");
           await deleteImage(userData.photoURL, "forevish");
         }
       }
@@ -181,14 +181,14 @@ export const uploadProfileImage = async (uid, file) => {
       `profile-images/${uid}` // folder path
     );
 
-    console.log("✅ Image uploaded successfully:", photoURL);
+    "✅ Image uploaded successfully:", photoURL;
 
     // Update user's photoURL in Firebase Auth
     if (auth.currentUser && auth.currentUser.uid === uid) {
       await updateProfile(auth.currentUser, {
         photoURL: photoURL,
       });
-      console.log("✅ Firebase Auth profile updated");
+      ("✅ Firebase Auth profile updated");
     }
 
     // Update user profile in Firestore
@@ -198,7 +198,7 @@ export const uploadProfileImage = async (uid, file) => {
       updatedAt: serverTimestamp(),
     });
 
-    console.log("✅ Firestore profile updated");
+    ("✅ Firestore profile updated");
 
     return {
       success: true,
@@ -440,5 +440,27 @@ const getAuthErrorMessage = (errorCode) => {
       return "Invalid email or password.";
     default:
       return "An error occurred. Please try again.";
+  }
+};
+
+export const submitContactForm = async (formData) => {
+  try {
+    // Get current user if logged in
+    const currentUser = auth.currentUser;
+
+    // Add submission to Firestore
+    const docRef = await addDoc(collection(db, "contactSubmissions"), {
+      ...formData,
+      userId: currentUser?.uid || null,
+      userEmail: currentUser?.email || null,
+      status: "new", // For tracking: new, inProgress, resolved
+      createdAt: serverTimestamp(),
+      source: "website",
+    });
+
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    console.error("Error submitting form:", error);
+    throw new Error("Failed to submit your message. Please try again.");
   }
 };

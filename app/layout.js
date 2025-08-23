@@ -151,7 +151,7 @@ export default function RootLayout({ children }) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body>
+      <body className="overflow-x-hidden">
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -13,6 +13,7 @@ import {
 } from "react-icons/fi";
 import { usePathname, useRouter } from "next/navigation";
 import { logout, performLogout } from "@/app/_store/features/userSlice";
+import Image from "next/image";
 
 const Navbar = () => {
   const pathname = usePathname();
@@ -43,6 +44,7 @@ const Navbar = () => {
   }, []);
 
   const toggleMenu = () => setIsMenuOpen((v) => !v);
+  const closeMenu = () => setIsMenuOpen(false); // close on any mobile action
 
   const handleLogout = () => {
     dispatch(performLogout());
@@ -74,7 +76,7 @@ const Navbar = () => {
 
   const wishlistItems = useSelector((state) => state.wishlist.items);
   const wishlistCount = wishlistItems.length;
-  console.log(isProductPage, pathname, pathname.startsWith("/product/"));
+  isProductPage, pathname, pathname.startsWith("/product/");
   if (pathname.startsWith("/product/")) {
     return <></>;
   }
@@ -86,9 +88,13 @@ const Navbar = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/">
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors">
-                Forevish
-              </h1>
+              <Image
+                src="/logo.png"
+                alt="Forevish logo"
+                width={60}
+                height={60}
+                priority
+              />
             </Link>
           </div>
 
@@ -108,13 +114,7 @@ const Navbar = () => {
               Suits
               <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></span>
             </Link>
-            <Link
-              href="/blazers"
-              className="text-sm text-gray-600 hover:text-gray-900 transition-colors relative group"
-            >
-              Blazers
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-200 group-hover:w-full"></span>
-            </Link>
+
             <Link
               href="/accessories"
               className="text-sm text-gray-600 hover:text-gray-900 transition-colors relative group"
@@ -272,7 +272,7 @@ const Navbar = () => {
             </button>
 
             {/* Mobile Cart Button with Count */}
-            <Link href="/cart">
+            <Link href="/cart" onClick={closeMenu}>
               <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
                 <FiShoppingCart className="h-5 w-5" />
                 {cartCount > 0 && (
@@ -316,24 +316,22 @@ const Navbar = () => {
             <nav className="space-y-2">
               <Link
                 href="/new-arrivals"
+                onClick={closeMenu}
                 className="block py-2 text-gray-600 hover:text-gray-900 transition-colors"
               >
                 New Arrivals
               </Link>
               <Link
                 href="/suits"
+                onClick={closeMenu}
                 className="block py-2 text-gray-900 font-medium"
               >
                 Suits
               </Link>
-              <Link
-                href="/blazers"
-                className="block py-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Blazers
-              </Link>
+
               <Link
                 href="/accessories"
+                onClick={closeMenu}
                 className="block py-2 text-gray-600 hover:text-gray-900 transition-colors"
               >
                 Accessories
@@ -374,7 +372,10 @@ const Navbar = () => {
                 </div>
               ) : (
                 <Link href="/auth">
-                  <button className="w-full h-10 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition">
+                  <button
+                    onClick={closeMenu}
+                    className="w-full h-10 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
+                  >
                     Login / Sign Up
                   </button>
                 </Link>
@@ -385,28 +386,28 @@ const Navbar = () => {
                   <Link
                     href="/profile"
                     className="text-xs px-3 py-2 rounded-md bg-gray-100 text-gray-700 text-center"
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={closeMenu}
                   >
                     Profile
                   </Link>
                   <Link
                     href="/orders"
                     className="text-xs px-3 py-2 rounded-md bg-gray-100 text-gray-700 text-center"
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={closeMenu}
                   >
                     Orders
                   </Link>
                   <Link
                     href="/wishlist"
                     className="text-xs px-3 py-2 rounded-md bg-gray-100 text-gray-700 text-center"
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={closeMenu}
                   >
                     Wishlist
                   </Link>
                   <button
                     onClick={() => {
                       handleLogout();
-                      setIsMenuOpen(false);
+                      closeMenu();
                     }}
                     className="text-xs px-3 py-2 rounded-md bg-red-50 text-red-600 text-center"
                   >
@@ -418,7 +419,7 @@ const Navbar = () => {
 
             {/* Mobile Cart Summary */}
             <div className="pt-4 border-t border-gray-200">
-              <Link href="/cart">
+              <Link href="/cart" onClick={closeMenu}>
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="relative">

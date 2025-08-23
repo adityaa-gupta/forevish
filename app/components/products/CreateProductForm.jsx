@@ -252,7 +252,7 @@ const CreateProductForm = () => {
           : 0,
       };
 
-      console.log("Optimized Product Data:", formData);
+      "Optimized Product Data:", formData;
 
       const result = await createProduct(formData);
 

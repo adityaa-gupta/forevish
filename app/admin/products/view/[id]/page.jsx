@@ -35,10 +35,10 @@ export default function ViewProductPage() {
 
       try {
         setLoading(true);
-        console.log("Fetching product with ID:", id);
+        "Fetching product with ID:", id;
 
         const result = await getProductById(id);
-        console.log("Product fetch result:", result);
+        // ("Product fetch result:", result);
 
         if (result.success) {
           setProduct(result.data);

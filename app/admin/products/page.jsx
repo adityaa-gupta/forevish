@@ -87,13 +87,13 @@ export default function ProductsPage() {
     setMenuPosition(null);
     switch (action) {
       case "view":
-        console.log("View product:", productId);
+        // ("View product:", productId);
         break;
       case "edit":
-        console.log("Edit product:", productId);
+        // ("Edit product:", productId);
         break;
       case "delete":
-        console.log("Delete product:", productId);
+        // ("Delete product:", productId);
         break;
     }
   };
