@@ -1,5 +1,6 @@
 // Firestore order helpers
 // Adjust import path to your firebase config.
+import { db } from "@/app/firebase/config";
 import {
   collection,
   addDoc,
@@ -19,63 +20,64 @@ import {
 } from "firebase/firestore";
 // import { db } from "../firebase"; // <-- ensure this exists
 
-import { db } from "@/app/providers/Provider";
+// import { db } from "./firebase";
+// import { sendOrderConfirmationEmail } from "./email";
 
-// Create order and (optionally) decrement product stock atomically (best-effort)
-export async function createOrder(order) {
+/**
+ * Sends an order confirmation email via API
+ */
+async function sendOrderConfirmationEmail(orderData) {
   try {
-    if (!order?.userId) throw new Error("Missing userId");
-
-    const ordersCol = collection(db, "orders");
-    const batch = writeBatch(db);
-
-    // Pre-create order doc ref to know ID
-    const docRef = doc(ordersCol);
-    const orderId = docRef.id;
-
-    // Decrement stock (simple example)
-    for (const item of order.items) {
-      const prodRef = doc(db, "products", item.productId);
-      const snap = await getDoc(prodRef);
-      if (snap.exists()) {
-        const data = snap.data();
-        if (typeof data.stock === "number") {
-          const newStock = Math.max(0, data.stock - item.quantity);
-          batch.update(prodRef, { stock: newStock });
-        }
-      }
-    }
-
-    // Write order
-    batch.set(docRef, {
-      userId: order.userId,
-      items: order.items,
-      shipping: order.shipping,
-      amounts: order.amounts,
-      netAmount: order.amounts?.total,
-      status: "pending",
-      paymentStatus: "unpaid",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      orderNumber: orderId.slice(-8).toUpperCase(),
+    const response = await fetch("/api/email/send-order-confirmation", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(orderData),
     });
 
-    // Append order id to user doc (ensure array exists)
-    const userRef = doc(db, "users", order.userId);
-    batch.set(
-      userRef,
-      {
-        orders: arrayUnion(orderId),
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("Error sending email via API:", error);
+    return { success: false, error: error.message };
+  }
+}
 
-    await batch.commit();
-    return { success: true, id: orderId };
-  } catch (e) {
-    console.error("createOrder error", e);
-    return { success: false, error: e.message };
+/**
+ * Creates a new order in Firestore and sends confirmation email
+ */
+export async function createOrder(orderData) {
+  try {
+    // Add timestamp
+    const orderWithTimestamp = {
+      ...orderData,
+      status: "placed",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    // Save to Firestore
+    const docRef = await addDoc(collection(db, "orders"), orderWithTimestamp);
+
+    // Get the created order with ID
+    const orderWithId = {
+      ...orderWithTimestamp,
+      id: docRef.id,
+    };
+
+    // Send confirmation email
+    try {
+      await sendOrderConfirmationEmail(orderWithId);
+    } catch (emailError) {
+      console.error("Error sending confirmation email:", emailError);
+      // Don't fail the order creation if email fails
+    }
+
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    console.error("Error creating order:", error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -194,16 +196,27 @@ export async function getAllOrders({
   }
 }
 
-// NEW: Fetch single order by id
+/**
+ * Fetches an order by ID
+ */
 export async function getOrderById(orderId) {
   try {
-    const ref = doc(db, "orders", orderId);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return { success: false, error: "Order not found" };
-    return { success: true, data: { id: snap.id, ...snap.data() } };
-  } catch (e) {
-    console.error("getOrderById error", e);
-    return { success: false, error: e.message };
+    const orderDoc = await getDoc(doc(db, "orders", orderId));
+
+    if (!orderDoc.exists()) {
+      throw new Error("Order not found");
+    }
+
+    return {
+      success: true,
+      data: {
+        id: orderDoc.id,
+        ...orderDoc.data(),
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching order:", error);
+    return { success: false, error: error.message };
   }
 }
 

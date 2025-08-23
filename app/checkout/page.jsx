@@ -89,6 +89,10 @@ export default function CheckoutPage() {
       return;
     }
     setSubmitting(true);
+
+    // Show a loading toast that we'll update later
+    const toastId = toast.loading("Processing your order...");
+
     try {
       const orderPayload = {
         userId: userInfo?.id || userInfo?.uid,
@@ -111,14 +115,27 @@ export default function CheckoutPage() {
           total,
         },
       };
+
+      // Create the order
       const { success, id, error } = await createOrder(orderPayload);
+
       if (!success) throw new Error(error || "Order failed");
-      toast.success("Order placed");
+
+      // Update the loading toast with success message
+      toast.success("Order placed! Confirmation email sent.", {
+        id: toastId,
+      });
+
+      // Clear the cart
       dispatch(clearCart());
+
+      // Navigate to order confirmation page
       router.push(`/orders/${id}`);
     } catch (err) {
       console.error(err);
-      toast.error(err.message || "Something went wrong");
+      toast.error(err.message || "Something went wrong", {
+        id: toastId,
+      });
     } finally {
       setSubmitting(false);
     }
