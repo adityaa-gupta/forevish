@@ -1,6 +1,7 @@
 import { Geist, Manrope } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers/Provider";
+import GoogleAnalytics from "./components/GoogleAnalytics";
 
 const siteName = "Forevish";
 const siteTitle = "Forevish Suits - Women's Professional Wear";
@@ -152,6 +153,8 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="overflow-x-hidden">
+        <GoogleAnalytics GA_MEASUREMENT_ID="G-YMG19F781W" />
+
         <Providers>{children}</Providers>
       </body>
     </html>
