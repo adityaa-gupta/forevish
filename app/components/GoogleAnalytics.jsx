@@ -2,9 +2,10 @@
 
 import Script from "next/script";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 
-export default function GoogleAnalytics({ GA_MEASUREMENT_ID }) {
+// Component that uses search params (needs to be wrapped in Suspense)
+function AnalyticsTracking({ GA_MEASUREMENT_ID }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -18,6 +19,11 @@ export default function GoogleAnalytics({ GA_MEASUREMENT_ID }) {
     }
   }, [pathname, searchParams, GA_MEASUREMENT_ID]);
 
+  return null;
+}
+
+// Main component that includes scripts and wraps the tracking in Suspense
+export default function GoogleAnalytics({ GA_MEASUREMENT_ID }) {
   return (
     <>
       <Script
@@ -36,6 +42,9 @@ export default function GoogleAnalytics({ GA_MEASUREMENT_ID }) {
           `,
         }}
       />
+      <Suspense fallback={null}>
+        <AnalyticsTracking GA_MEASUREMENT_ID={GA_MEASUREMENT_ID} />
+      </Suspense>
     </>
   );
 }
