@@ -11,6 +11,7 @@ import {
   Youtube,
   Github,
 } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 export default function FooterComponent() {
   const [email, setEmail] = useState("");
@@ -29,6 +30,17 @@ export default function FooterComponent() {
   }
 
   const year = new Date().getFullYear();
+
+  const pathname = usePathname();
+  // Hide footer on product pages and checkout/admin pages
+  // isProductPage, pathname, pathname.startsWith("/product/");
+  if (
+    pathname.startsWith("/product/") ||
+    pathname === "/checkout" ||
+    pathname.startsWith("/admin")
+  ) {
+    return <></>;
+  }
 
   return (
     <footer className="relative mt-24 border-t border-neutral-200 bg-gradient-to-b from-white to-neutral-50 text-neutral-600">
@@ -89,31 +101,16 @@ export default function FooterComponent() {
 
           <div className="grid xs:grid-cols-2 sm:grid-cols-3 gap-8 lg:justify-end">
             <FooterColumn
-              title="Shop"
-              links={[
-                { href: "/shop/new", label: "New Arrivals" },
-                { href: "/shop/bestsellers", label: "Bestsellers" },
-                { href: "/shop/suits", label: "Suits" },
-                { href: "/shop/blazers", label: "Blazers" },
-                { href: "/shop/accessories", label: "Accessories" },
-              ]}
-            />
-            <FooterColumn
               title="Company"
               links={[
                 { href: "/about", label: "About Us" },
-                { href: "/careers", label: "Careers" },
                 { href: "/blog", label: "Blog" },
-                { href: "/press", label: "Press" },
                 { href: "/contact", label: "Contact" },
               ]}
             />
             <FooterColumn
               title="Support"
               links={[
-                { href: "/help", label: "Help Center" },
-                { href: "/shipping", label: "Shipping" },
-                { href: "/returns", label: "Returns" },
                 { href: "/size-guide", label: "Size Guide" },
                 { href: "/privacy", label: "Privacy Policy" },
               ]}

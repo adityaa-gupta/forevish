@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Size Guide • Laal Ishq Suit Set • Forevish",
+  title: "Size Guide • Forevish",
   description:
-    "Size chart for the Laal Ishq Suit Set. Find measurements for Kurta, Palazzo/Bottom, and Top across sizes XS–4XL.",
+    "Find your perfect fit with Forevish size charts. Detailed measurements for all our garments across sizes XS–4XL.",
 };
 
 export default function SizeGuidePage() {
@@ -42,25 +42,25 @@ export default function SizeGuidePage() {
   };
 
   return (
-    <main className="relative min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50/30">
+    <main className="relative min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50/30">
       <div className="pointer-events-none absolute inset-0 opacity-40">
-        <div className="absolute inset-x-0 top-0 h-96 bg-gradient-to-b from-violet-100/60 via-purple-50/40 to-transparent" />
-        <div className="absolute -top-32 right-[-15%] h-96 w-96 rounded-full bg-[radial-gradient(circle_at_center,rgba(139,69,193,0.15),transparent_70%)] blur-3xl" />
-        <div className="absolute -top-20 left-[-15%] h-96 w-96 rounded-full bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.12),transparent_70%)] blur-3xl" />
-        <div className="absolute top-1/2 right-1/4 h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,rgba(147,51,234,0.08),transparent_70%)] blur-2xl" />
+        <div className="absolute inset-x-0 top-0 h-96 bg-gradient-to-b from-blue-100/60 via-blue-50/40 to-transparent" />
+        <div className="absolute -top-32 right-[-15%] h-96 w-96 rounded-full bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.15),transparent_70%)] blur-3xl" />
+        <div className="absolute -top-20 left-[-15%] h-96 w-96 rounded-full bg-[radial-gradient(circle_at_center,rgba(37,99,235,0.12),transparent_70%)] blur-3xl" />
+        <div className="absolute top-1/2 right-1/4 h-64 w-64 rounded-full bg-[radial-gradient(circle_at_center,rgba(30,64,175,0.08),transparent_70%)] blur-2xl" />
       </div>
 
       <header className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-12">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-violet-100 to-purple-100 border border-violet-200/60 shadow-sm">
-          <div className="w-2 h-2 rounded-full bg-violet-500"></div>
-          <span className="text-violet-800 text-sm font-semibold">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-slate-100 border border-blue-200/60 shadow-sm">
+          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+          <span className="text-blue-800 text-sm font-semibold">
             Size Guide
           </span>
         </div>
-        <h1 className="mt-6 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-violet-900 via-purple-800 to-violet-700">
-          Forevish Suits Size Chart
+        <h1 className="mt-6 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-slate-900 via-blue-800 to-slate-800">
+          Forevish Size Chart
         </h1>
-        <p className="mt-4 text-lg text-violet-700/80 max-w-2xl">
+        <p className="mt-4 text-lg text-blue-700/80 max-w-2xl">
           All measurements are in inches. Consider a 0.5–1 inch allowance for
           comfort.
         </p>
@@ -74,7 +74,7 @@ export default function SizeGuidePage() {
           sizes={sizes}
           rows={kurta}
           downloadHref={csvLinks.kurta}
-          downloadName="laal-ishq-kurta-size-chart.csv"
+          downloadName="forevish-kurta-size-chart.csv"
         />
         <TableCard
           title="Palazzo / Bottom"
@@ -82,7 +82,7 @@ export default function SizeGuidePage() {
           sizes={sizes}
           rows={palazzo}
           downloadHref={csvLinks.palazzo}
-          downloadName="laal-ishq-palazzo-size-chart.csv"
+          downloadName="forevish-palazzo-size-chart.csv"
         />
         <TableCard
           title="Top"
@@ -90,13 +90,13 @@ export default function SizeGuidePage() {
           sizes={sizes}
           rows={top}
           downloadHref={csvLinks.top}
-          downloadName="laal-ishq-top-size-chart.csv"
+          downloadName="forevish-top-size-chart.csv"
         />
 
-        <div className="rounded-3xl bg-gradient-to-r from-violet-100/60 to-purple-100/40 backdrop-blur-sm shadow-lg shadow-violet-100/50 ring-1 ring-violet-200/40 p-8 text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-violet-500/10 mb-4">
+        <div className="rounded-3xl bg-gradient-to-r from-blue-100/60 to-slate-100/40 backdrop-blur-sm shadow-lg shadow-blue-100/50 ring-1 ring-blue-200/40 p-8 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-500/10 mb-4">
             <svg
-              className="w-6 h-6 text-violet-600"
+              className="w-6 h-6 text-blue-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -109,11 +109,11 @@ export default function SizeGuidePage() {
               />
             </svg>
           </div>
-          <p className="text-lg text-violet-900/90 font-medium">
+          <p className="text-lg text-slate-900/90 font-medium">
             Need help picking a size?{" "}
             <Link
               href="/contact"
-              className="text-violet-700 font-bold hover:text-violet-800 underline decoration-violet-300 hover:decoration-violet-500 transition-colors duration-200"
+              className="text-blue-700 font-bold hover:text-blue-800 underline decoration-blue-300 hover:decoration-blue-500 transition-colors duration-200"
             >
               Talk to our stylist
             </Link>
@@ -127,20 +127,20 @@ export default function SizeGuidePage() {
 
 function TableCard({ title, note, sizes, rows, downloadHref, downloadName }) {
   return (
-    <div className="group relative rounded-3xl bg-white/80 backdrop-blur-sm shadow-lg shadow-violet-100/50 ring-1 ring-violet-200/40 p-6 sm:p-8 hover:shadow-xl hover:shadow-violet-200/30 transition-all duration-300">
-      <div className="absolute left-0 top-0 h-full w-1 rounded-l-3xl bg-gradient-to-b from-violet-500 via-purple-500 to-violet-400 shadow-lg shadow-violet-500/30" />
+    <div className="group relative rounded-3xl bg-white/80 backdrop-blur-sm shadow-lg shadow-blue-100/50 ring-1 ring-blue-200/40 p-6 sm:p-8 hover:shadow-xl hover:shadow-blue-200/30 transition-all duration-300">
+      <div className="absolute left-0 top-0 h-full w-1 rounded-l-3xl bg-gradient-to-b from-blue-600 via-blue-500 to-blue-400 shadow-lg shadow-blue-500/30" />
 
       <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-violet-950 mb-2">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
             {title}
           </h2>
-          {note && <p className="text-sm text-violet-700/70">{note}</p>}
+          {note && <p className="text-sm text-blue-700/70">{note}</p>}
         </div>
         <a
           href={downloadHref}
           download={downloadName}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-violet-800 bg-gradient-to-r from-violet-100 to-purple-100 border border-violet-200/60 rounded-full px-4 py-2.5 hover:from-violet-200 hover:to-purple-200 hover:border-violet-300 transition-all duration-200 shadow-sm hover:shadow-md"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-blue-800 bg-gradient-to-r from-blue-100 to-slate-100 border border-blue-200/60 rounded-full px-4 py-2.5 hover:from-blue-200 hover:to-slate-200 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md"
         >
           Download CSV
           <svg
@@ -159,18 +159,18 @@ function TableCard({ title, note, sizes, rows, downloadHref, downloadName }) {
         </a>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-violet-100/60 bg-gradient-to-br from-white to-violet-50/30">
+      <div className="overflow-x-auto rounded-2xl border border-blue-100/60 bg-gradient-to-br from-white to-blue-50/30">
         <table className="w-full border-collapse text-sm">
           <caption className="sr-only">{title} size chart</caption>
           <thead>
-            <tr className="bg-gradient-to-r from-violet-100/80 to-purple-100/60">
-              <th className="sticky left-0 z-10 bg-gradient-to-r from-violet-100/80 to-purple-100/60 text-left font-bold text-violet-900 border-b border-violet-200/60 px-4 py-4 rounded-tl-2xl">
+            <tr className="bg-gradient-to-r from-blue-100/80 to-slate-100/60">
+              <th className="sticky left-0 z-10 bg-gradient-to-r from-blue-100/80 to-slate-100/60 text-left font-bold text-slate-900 border-b border-blue-200/60 px-4 py-4 rounded-tl-2xl">
                 Measure
               </th>
               {sizes.map((s, index) => (
                 <th
                   key={s}
-                  className={`text-center font-bold text-violet-900 border-b border-violet-200/60 px-4 py-4 ${
+                  className={`text-center font-bold text-slate-900 border-b border-blue-200/60 px-4 py-4 ${
                     index === sizes.length - 1 ? "rounded-tr-2xl" : ""
                   }`}
                 >
@@ -183,15 +183,15 @@ function TableCard({ title, note, sizes, rows, downloadHref, downloadName }) {
             {rows.map((r, rowIndex) => (
               <tr
                 key={r.label}
-                className="hover:bg-violet-50/40 transition-colors duration-150"
+                className="hover:bg-blue-50/40 transition-colors duration-150"
               >
-                <th className="sticky left-0 z-10 bg-white/90 backdrop-blur-sm text-violet-900 font-semibold border-b border-violet-100/60 px-4 py-3">
+                <th className="sticky left-0 z-10 bg-white/90 backdrop-blur-sm text-slate-900 font-semibold border-b border-blue-100/60 px-4 py-3">
                   {r.label}
                 </th>
                 {r.values.map((v, i) => (
                   <td
                     key={`${r.label}-${i}`}
-                    className="border-b border-violet-100/60 px-4 py-3 text-center text-violet-800 font-medium"
+                    className="border-b border-blue-100/60 px-4 py-3 text-center text-blue-800 font-medium"
                   >
                     {v}"
                   </td>

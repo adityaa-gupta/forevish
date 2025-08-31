@@ -15,6 +15,7 @@ import { setFilterLoading } from "../_store/features/filterSlice";
 import ProductFilter from "./ProductFilter";
 import Link from "next/link";
 import formatPrice from "../lib/helpers/formatPrice";
+import Image from "next/image";
 
 export function ProductListing({ initialProducts = [], fetchError = null }) {
   const [selectedColors, setSelectedColors] = useState({});
@@ -266,11 +267,13 @@ export function ProductListing({ initialProducts = [], fetchError = null }) {
                       key={product.id}
                       className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white border border-gray-200 rounded-lg overflow-hidden"
                     >
-                      <div className="relative overflow-hidden">
-                        <img
+                      <div className="relative w-full aspect-square overflow-hidden">
+                        <Image
                           src={currentColor?.images?.[0] || product.image}
                           alt={product.name}
-                          className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-300"
+                          fill
+                          sizes="(max-width: 640px) 90vw, (max-width: 1024px) 50vw, 33vw"
+                          className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
                         />
                         <div className="absolute top-3 left-3 flex gap-2">
                           {product.isNew && (
@@ -297,7 +300,11 @@ export function ProductListing({ initialProducts = [], fetchError = null }) {
                           </span>
                         </div>
                         <button
-                          onClick={() => handleWishlistToggle(product)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleWishlistToggle(product);
+                          }}
                           className="absolute bottom-3 right-3 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors opacity-0 group-hover:opacity-100"
                         >
                           <Heart

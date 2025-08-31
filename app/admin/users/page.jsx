@@ -14,18 +14,34 @@ import {
   getOrdersByIds, // add this helper in orders service if not present
   getOrderById,
 } from "@/app/lib/services/orders";
-import { Loader2, Search, RefreshCw, Users, DollarSign } from "lucide-react";
+import {
+  Loader2,
+  Search,
+  RefreshCw,
+  Users,
+  DollarSign,
+  ChevronLeft,
+  ChevronRight,
+  IndianRupee,
+} from "lucide-react";
 import toast from "react-hot-toast";
+import formatINR from "@/app/lib/helpers/formatPrice";
+
+const USERS_PER_PAGE = 10;
 
 export default function AdminUsersPage() {
+  const [allUsers, setAllUsers] = useState([]);
   const [users, setUsers] = useState([]);
   const [augmented, setAugmented] = useState([]); // with order stats
+  const [displayedUsers, setDisplayedUsers] = useState([]); // paginated users
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Debounce search
   useEffect(() => {
@@ -38,6 +54,7 @@ export default function AdminUsersPage() {
     try {
       const snap = await getDocs(query(collection(db, "users"), limit(200)));
       const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setAllUsers(list);
       setUsers(list);
     } catch (e) {
       toast.error("Failed to load users");
@@ -132,6 +149,25 @@ export default function AdminUsersPage() {
     );
   })();
 
+  // Update pagination when filtered results change
+  useEffect(() => {
+    setTotalPages(Math.ceil(filtered.length / USERS_PER_PAGE));
+
+    // Reset to first page if the current page exceeds the new total pages
+    if (currentPage > Math.ceil(filtered.length / USERS_PER_PAGE)) {
+      setCurrentPage(1);
+    }
+
+    // Update displayed users based on pagination
+    const startIndex = (currentPage - 1) * USERS_PER_PAGE;
+    const endIndex = Math.min(startIndex + USERS_PER_PAGE, filtered.length);
+    setDisplayedUsers(filtered.slice(startIndex, endIndex));
+  }, [filtered, currentPage]);
+
+  const handlePageChange = (pageNum) => {
+    setCurrentPage(pageNum);
+  };
+
   const refresh = async () => {
     setRefreshing(true);
     await loadUsers();
@@ -181,8 +217,8 @@ export default function AdminUsersPage() {
           />
           <StatCard
             label="Total Revenue"
-            value={statsLoading ? "—" : `$${totalRevenue.toFixed(2)}`}
-            icon={<DollarSign className="w-4 h-4 text-emerald-600" />}
+            value={statsLoading ? "—" : formatINR(totalRevenue)}
+            icon={<IndianRupee className="w-4 h-4 text-emerald-600" />}
           />
         </div>
 
@@ -237,13 +273,13 @@ export default function AdminUsersPage() {
               )}
               {!loading &&
                 !statsLoading &&
-                filtered.map((u, i) => (
+                displayedUsers.map((u, i) => (
                   <tr
                     key={u.id}
                     className="border-t border-neutral-100 hover:bg-neutral-50/70 transition"
                   >
                     <Td className="font-mono text-[11px] text-neutral-500">
-                      {i + 1}
+                      {(currentPage - 1) * USERS_PER_PAGE + i + 1}
                     </Td>
                     <Td>
                       <div className="flex flex-col">
@@ -257,7 +293,7 @@ export default function AdminUsersPage() {
                     </Td>
                     <Td className="text-xs">{u.orderCount || 0}</Td>
                     <Td className="text-xs font-medium text-neutral-800">
-                      ${Number(u.revenue || 0).toFixed(2)}
+                      {formatINR(u.revenue || 0)}
                     </Td>
                     <Td className="text-[11px] text-neutral-500">
                       {u.lastOrderAt?.toDate
@@ -271,6 +307,88 @@ export default function AdminUsersPage() {
                 ))}
             </tbody>
           </table>
+
+          {/* Pagination Controls */}
+          {!loading && !statsLoading && totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                Showing {(currentPage - 1) * USERS_PER_PAGE + 1} to{" "}
+                {Math.min(currentPage * USERS_PER_PAGE, filtered.length)} of{" "}
+                {filtered.length} users
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`flex items-center justify-center w-8 h-8 rounded-md ${
+                    currentPage === 1
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "text-gray-600 hover:bg-gray-100 border border-gray-300"
+                  }`}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                {/* Page Numbers */}
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(
+                      (pageNum) =>
+                        pageNum === 1 ||
+                        pageNum === totalPages ||
+                        (pageNum >= currentPage - 1 &&
+                          pageNum <= currentPage + 1)
+                    )
+                    .map((pageNum, i, array) => {
+                      // Add ellipsis when there are gaps in the page numbers
+                      if (i > 0 && pageNum > array[i - 1] + 1) {
+                        return (
+                          <React.Fragment key={`ellipsis-${pageNum}`}>
+                            <span className="px-2 text-gray-400">...</span>
+                            <button
+                              onClick={() => handlePageChange(pageNum)}
+                              className={`flex items-center justify-center w-8 h-8 rounded-md ${
+                                currentPage === pageNum
+                                  ? "bg-neutral-900 text-white"
+                                  : "text-gray-700 hover:bg-gray-100 border border-gray-300"
+                              }`}
+                            >
+                              {pageNum}
+                            </button>
+                          </React.Fragment>
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`flex items-center justify-center w-8 h-8 rounded-md ${
+                            currentPage === pageNum
+                              ? "bg-neutral-900 text-white"
+                              : "text-gray-700 hover:bg-gray-100 border border-gray-300"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                </div>
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`flex items-center justify-center w-8 h-8 rounded-md ${
+                    currentPage === totalPages
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "text-gray-600 hover:bg-gray-100 border border-gray-300"
+                  }`}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -284,6 +402,7 @@ function Th({ children }) {
     </th>
   );
 }
+
 function Td({ children, className = "" }) {
   return <td className={`px-4 py-3 align-top ${className}`}>{children}</td>;
 }

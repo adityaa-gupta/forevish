@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createOrder } from "@/app/lib/services/orders";
 import { clearCart } from "@/app/_store/features/cartSlice";
 import toast from "react-hot-toast";
+import formatINR from "@/app/lib/helpers/formatPrice";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -251,7 +252,7 @@ export default function CheckoutPage() {
                     </p>
                   </div>
                   <p className="font-medium text-neutral-700">
-                    ${(i.price * i.quantity).toFixed(2)}
+                    {formatINR(i.price * i.quantity)}
                   </p>
                 </li>
               ))}
@@ -266,19 +267,14 @@ export default function CheckoutPage() {
               Summary
             </h3>
             <div className="space-y-2 text-sm">
-              <Row label="Subtotal" value={`$${subtotal.toFixed(2)}`} />
+              <Row label="Subtotal" value={formatINR(subtotal)} />
               <Row
                 label="Shipping"
-                value={shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}
+                value={shipping === 0 ? "Free" : formatINR(shipping)}
               />
-              <Row label="Tax (7%)" value={`$${tax.toFixed(2)}`} />
+              <Row label="Tax (7%)" value={formatINR(tax)} />
               <div className="pt-2 border-t border-neutral-200">
-                <Row
-                  label="Total"
-                  value={`$${total.toFixed(2)}`}
-                  strong
-                  large
-                />
+                <Row label="Total" value={formatINR(total)} strong large />
               </div>
             </div>
             <button

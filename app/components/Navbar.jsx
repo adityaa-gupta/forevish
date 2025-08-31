@@ -76,10 +76,24 @@ const Navbar = () => {
 
   const wishlistItems = useSelector((state) => state.wishlist.items);
   const wishlistCount = wishlistItems.length;
-  isProductPage, pathname, pathname.startsWith("/product/");
-  if (pathname.startsWith("/product/")) {
+
+  // Hide navbar on certain pages
+  if (
+    pathname.startsWith("/product/") ||
+    pathname === "/checkout" ||
+    pathname.startsWith("/admin")
+  ) {
     return <></>;
   }
+
+  // Categories for the navbar - each will have its own page
+  const categories = [
+    { name: "Co-ord Sets", slug: "coord-sets" },
+    { name: "Lehengas", slug: "lehengas" },
+    { name: "Indowestern", slug: "indowestern" },
+    { name: "Gowns", slug: "gowns" },
+    { name: "Suits", slug: "suits" },
+  ];
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
@@ -102,26 +116,43 @@ const Navbar = () => {
           <nav className="hidden lg:flex items-center gap-6">
             <Link
               href="/new-arrivals"
-              className="text-sm text-gray-600 hover:text-gray-900 transition-colors relative group"
+              className={`text-sm ${
+                pathname === "/new-arrivals"
+                  ? "text-gray-900 font-medium"
+                  : "text-gray-600 hover:text-gray-900"
+              } transition-colors relative group`}
             >
               New Arrivals
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-200 group-hover:w-full"></span>
-            </Link>
-            <Link
-              href="/suits"
-              className="text-sm text-gray-900 font-medium relative group"
-            >
-              Suits
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></span>
+              <span
+                className={`absolute bottom-0 left-0 h-0.5 bg-blue-600 transition-all duration-200 ${
+                  pathname === "/new-arrivals"
+                    ? "w-full"
+                    : "w-0 group-hover:w-full"
+                }`}
+              ></span>
             </Link>
 
-            <Link
-              href="/accessories"
-              className="text-sm text-gray-600 hover:text-gray-900 transition-colors relative group"
-            >
-              Accessories
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-200 group-hover:w-full"></span>
-            </Link>
+            {/* Dynamic Category Links */}
+            {categories.map((category) => (
+              <Link
+                key={category.slug}
+                href={`/category/${category.slug}`}
+                className={`text-sm ${
+                  pathname === `/category/${category.slug}`
+                    ? "text-gray-900 font-medium"
+                    : "text-gray-600 hover:text-gray-900"
+                } transition-colors relative group`}
+              >
+                {category.name}
+                <span
+                  className={`absolute bottom-0 left-0 h-0.5 bg-blue-600 transition-all duration-200 ${
+                    pathname === `/category/${category.slug}`
+                      ? "w-full"
+                      : "w-0 group-hover:w-full"
+                  }`}
+                ></span>
+              </Link>
+            ))}
           </nav>
 
           {/* Desktop Search & Actions */}
@@ -129,7 +160,7 @@ const Navbar = () => {
             <div className="relative">
               <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
-                placeholder="Search suits..."
+                placeholder="Search products..."
                 className="pl-10 w-48 lg:w-64 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </div>
@@ -307,7 +338,7 @@ const Navbar = () => {
             <div className="relative">
               <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
-                placeholder="Search suits..."
+                placeholder="Search products..."
                 className="w-full pl-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </div>
@@ -317,25 +348,30 @@ const Navbar = () => {
               <Link
                 href="/new-arrivals"
                 onClick={closeMenu}
-                className="block py-2 text-gray-600 hover:text-gray-900 transition-colors"
+                className={`block py-2 ${
+                  pathname === "/new-arrivals"
+                    ? "text-gray-900 font-medium"
+                    : "text-gray-600 hover:text-gray-900"
+                } transition-colors`}
               >
                 New Arrivals
               </Link>
-              <Link
-                href="/suits"
-                onClick={closeMenu}
-                className="block py-2 text-gray-900 font-medium"
-              >
-                Suits
-              </Link>
 
-              <Link
-                href="/accessories"
-                onClick={closeMenu}
-                className="block py-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Accessories
-              </Link>
+              {/* Dynamic Category Links for Mobile */}
+              {categories.map((category) => (
+                <Link
+                  key={`mobile-${category.slug}`}
+                  href={`/category/${category.slug}`}
+                  onClick={closeMenu}
+                  className={`block py-2 ${
+                    pathname === `/category/${category.slug}`
+                      ? "text-gray-900 font-medium"
+                      : "text-gray-600 hover:text-gray-900"
+                  } transition-colors`}
+                >
+                  {category.name}
+                </Link>
+              ))}
             </nav>
 
             {/* Mobile user block */}

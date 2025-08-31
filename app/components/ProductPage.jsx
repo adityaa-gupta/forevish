@@ -222,17 +222,19 @@ export default function ProductPageClient({ id, initialProduct }) {
               onMouseEnter={() => setImgZoom(true)}
               onMouseLeave={() => setImgZoom(false)}
               onMouseMove={handleMouseMove}
-              className="group relative aspect-square rounded-3xl bg-neutral-100 overflow-hidden border border-neutral-200 shadow-sm"
+              className="group relative aspect-3/4 rounded-3xl bg-neutral-100 overflow-hidden border border-neutral-200 shadow-sm"
               style={{ "--zoom-x": "50%", "--zoom-y": "50%" }}
             >
               <Image
                 src={selectedImages[currentImage]}
                 alt={product.name}
-                fill
                 priority
                 className={`object-cover transition duration-500 ${
-                  imgZoom ? "scale-110" : "scale-100"
+                  imgZoom ? "scale-105" : "scale-100"
                 }`}
+                fill
+                // sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                // className="object-cover transition-transform duration-700 hover:scale-105"
               />
               {discountPct > 0 && (
                 <div className="absolute top-4 left-4 flex items-center gap-1 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-semibold px-3 py-1 shadow">
@@ -294,7 +296,7 @@ export default function ProductPageClient({ id, initialProduct }) {
                   <button
                     key={img + i}
                     onClick={() => setCurrentImage(i)}
-                    className={`relative aspect-square rounded-xl overflow-hidden border transition group ${
+                    className={`relative aspect-3/4 rounded-xl overflow-hidden border transition group ${
                       currentImage === i
                         ? "border-blue-600 ring-2 ring-blue-200"
                         : "border-transparent hover:border-neutral-300"

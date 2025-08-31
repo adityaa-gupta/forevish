@@ -19,11 +19,6 @@ import {
   Clock,
 } from "lucide-react";
 
-// import {
-//   removeItemFromCart,
-//   updateCartItemQuantity,
-//   ,clearCart,
-// } from "../_store/features/cartSlice";
 import { addToWishlist } from "../_store/features/wishlistSlice";
 import toast from "react-hot-toast";
 import {
@@ -31,6 +26,7 @@ import {
   updateCartItemQuantity,
   clearCart,
 } from "../_store/features/cartSlice";
+import formatINR from "../lib/helpers/formatPrice";
 
 export default function CartPage() {
   const dispatch = useDispatch();
@@ -48,9 +44,9 @@ export default function CartPage() {
   }, 0);
 
   const shipping = subtotal > 100 ? 0 : 10; // Free shipping over $100
-  const tax = subtotal * 0.08; // 8% tax
+  // No tax calculation as prices are tax-inclusive
   const discountAmount = isPromoApplied ? subtotal * (discount / 100) : 0;
-  const total = subtotal + shipping + tax - discountAmount;
+  const total = subtotal + shipping - discountAmount;
 
   // Handle quantity update
   const handleQuantityUpdate = (itemId, newQuantity) => {
@@ -337,14 +333,13 @@ export default function CartPage() {
                         <div className="flex items-center justify-between mt-4">
                           <div className="flex items-center space-x-2">
                             <span className="text-xl font-bold text-gray-900">
-                              ${(item.price * item.quantity).toFixed(2)}
+                              {formatINR(item.price * item.quantity)}
                             </span>
                             {item.originalPrice &&
                               item.originalPrice > item.price && (
                                 <span className="text-sm text-gray-500 line-through">
-                                  $
-                                  {(item.originalPrice * item.quantity).toFixed(
-                                    2
+                                  {formatINR(
+                                    item.originalPrice * item.quantity
                                   )}
                                 </span>
                               )}
@@ -442,7 +437,7 @@ export default function CartPage() {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">${subtotal.toFixed(2)}</span>
+                  <span className="font-medium">{formatINR(subtotal)}</span>
                 </div>
 
                 <div className="flex justify-between">
@@ -452,13 +447,8 @@ export default function CartPage() {
                       shipping === 0 ? "text-green-600" : ""
                     }`}
                   >
-                    {shipping === 0 ? "FREE" : `$${shipping.toFixed(2)}`}
+                    {shipping === 0 ? "FREE" : formatINR(shipping)}
                   </span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tax</span>
-                  <span className="font-medium">${tax.toFixed(2)}</span>
                 </div>
 
                 {isPromoApplied && discountAmount > 0 && (
@@ -467,7 +457,7 @@ export default function CartPage() {
                       Discount ({discount}%)
                     </span>
                     <span className="font-medium text-green-600">
-                      -${discountAmount.toFixed(2)}
+                      -{formatINR(discountAmount)}
                     </span>
                   </div>
                 )}
@@ -478,9 +468,12 @@ export default function CartPage() {
                       Total
                     </span>
                     <span className="text-2xl font-bold text-gray-900">
-                      ${total.toFixed(2)}
+                      {formatINR(total)}
                     </span>
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    (Inclusive of all taxes)
+                  </p>
                 </div>
               </div>
 
@@ -488,8 +481,7 @@ export default function CartPage() {
               {subtotal < 100 && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
                   <p className="text-sm text-blue-800">
-                    💡 Add ${(100 - subtotal).toFixed(2)} more for free
-                    shipping!
+                    💡 Add {formatINR(100 - subtotal)} more for free shipping!
                   </p>
                 </div>
               )}

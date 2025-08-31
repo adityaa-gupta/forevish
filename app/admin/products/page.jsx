@@ -3,14 +3,27 @@ import { getAllProducts } from "@/app/lib/services/products";
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { FiMoreVertical, FiEye, FiEdit2, FiTrash2 } from "react-icons/fi";
+import {
+  FiMoreVertical,
+  FiEye,
+  FiEdit2,
+  FiTrash2,
+  FiChevronLeft,
+  FiChevronRight,
+} from "react-icons/fi";
+import formatINR from "@/app/lib/helpers/formatPrice";
+
+const PRODUCTS_PER_PAGE = 10;
 
 export default function ProductsPage() {
+  const [allProducts, setAllProducts] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [menuPosition, setMenuPosition] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const fetchProducts = async () => {
     try {
@@ -18,7 +31,13 @@ export default function ProductsPage() {
       const result = await getAllProducts();
 
       if (result.success) {
-        setProducts(result.data);
+        setAllProducts(result.data);
+        setTotalPages(Math.ceil(result.data.length / PRODUCTS_PER_PAGE));
+
+        // Set initial page of products
+        const startIndex = 0;
+        const endIndex = Math.min(PRODUCTS_PER_PAGE, result.data.length);
+        setProducts(result.data.slice(startIndex, endIndex));
         setError(null);
       } else {
         throw new Error(result.error || "Failed to fetch products");
@@ -26,6 +45,7 @@ export default function ProductsPage() {
     } catch (err) {
       console.error("Error fetching products:", err);
       setError(err.message);
+      setAllProducts([]);
       setProducts([]);
     } finally {
       setLoading(false);
@@ -36,13 +56,20 @@ export default function ProductsPage() {
     fetchProducts();
   }, []);
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "INR",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(price);
+  // Update displayed products when page changes
+  useEffect(() => {
+    if (allProducts.length > 0) {
+      const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
+      const endIndex = Math.min(
+        startIndex + PRODUCTS_PER_PAGE,
+        allProducts.length
+      );
+      setProducts(allProducts.slice(startIndex, endIndex));
+    }
+  }, [currentPage, allProducts]);
+
+  const handlePageChange = (pageNum) => {
+    setCurrentPage(pageNum);
   };
 
   const formatDate = (timestamp) => {
@@ -54,9 +81,10 @@ export default function ProductsPage() {
   const getTotalStock = (variants) => {
     if (!variants || variants.length === 0) return 0;
     return variants.reduce((total, variant) => {
-      const variantStock = variant.colors.reduce((colorTotal, color) => {
-        return colorTotal + (color.stock || 0);
-      }, 0);
+      const variantStock =
+        variant.colors?.reduce((colorTotal, color) => {
+          return colorTotal + (color.stock || 0);
+        }, 0) || 0;
       return total + variantStock;
     }, 0);
   };
@@ -164,6 +192,7 @@ export default function ProductsPage() {
             <thead className="bg-gray-50">
               <tr>
                 {[
+                  "#",
                   "Product",
                   "Category",
                   "Price",
@@ -183,19 +212,30 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {products.map((product) => {
+              {products.map((product, idx) => {
                 const totalStock = getTotalStock(product.variants);
                 const availableSizes = getAvailableSizes(product.variants);
 
                 return (
                   <tr key={product.id} className="hover:bg-gray-50 text-black">
+                    <td className="px-6 py-4 text-gray-500 text-sm">
+                      {(currentPage - 1) * PRODUCTS_PER_PAGE + idx + 1}
+                    </td>
                     <td className="px-6 py-4">{product.name}</td>
                     <td className="px-6 py-4">{product.category}</td>
-                    <td className="px-6 py-4">{formatPrice(product.price)}</td>
+                    <td className="px-6 py-4">{formatINR(product.price)}</td>
                     <td className="px-6 py-4">{availableSizes}</td>
                     <td className="px-6 py-4">{totalStock} units</td>
                     <td className="px-6 py-4">
-                      {product.isActive ? "Active" : "Inactive"}
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          product.isActive
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {product.isActive ? "Active" : "Inactive"}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       {formatDate(product.createdAt)}
@@ -214,6 +254,87 @@ export default function ProductsPage() {
               })}
             </tbody>
           </table>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <div className="text-sm text-gray-500">
+              Showing {(currentPage - 1) * PRODUCTS_PER_PAGE + 1} to{" "}
+              {Math.min(currentPage * PRODUCTS_PER_PAGE, allProducts.length)} of{" "}
+              {allProducts.length} products
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`flex items-center justify-center w-8 h-8 rounded-md ${
+                  currentPage === 1
+                    ? "text-gray-300 cursor-not-allowed"
+                    : "text-gray-600 hover:bg-gray-100 border border-gray-300"
+                }`}
+              >
+                <FiChevronLeft className="w-4 h-4" />
+              </button>
+
+              {/* Page Numbers */}
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(
+                    (pageNum) =>
+                      pageNum === 1 ||
+                      pageNum === totalPages ||
+                      (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                  )
+                  .map((pageNum, i, array) => {
+                    // Add ellipsis when there are gaps in the page numbers
+                    if (i > 0 && pageNum > array[i - 1] + 1) {
+                      return (
+                        <React.Fragment key={`ellipsis-${pageNum}`}>
+                          <span className="px-2 text-gray-400">...</span>
+                          <button
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`flex items-center justify-center w-8 h-8 rounded-md ${
+                              currentPage === pageNum
+                                ? "bg-blue-600 text-white"
+                                : "text-gray-700 hover:bg-gray-100 border border-gray-300"
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        </React.Fragment>
+                      );
+                    }
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`flex items-center justify-center w-8 h-8 rounded-md ${
+                          currentPage === pageNum
+                            ? "bg-blue-600 text-white"
+                            : "text-gray-700 hover:bg-gray-100 border border-gray-300"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+              </div>
+
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`flex items-center justify-center w-8 h-8 rounded-md ${
+                  currentPage === totalPages
+                    ? "text-gray-300 cursor-not-allowed"
+                    : "text-gray-600 hover:bg-gray-100 border border-gray-300"
+                }`}
+              >
+                <FiChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         )}
       </div>
 

@@ -3,9 +3,18 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { getAllOrders, updateOrderStatus } from "@/app/lib/services/orders";
 import { format } from "date-fns";
-import { Loader2, RefreshCw, Search, Filter, ChevronDown } from "lucide-react";
+import {
+  Loader2,
+  RefreshCw,
+  Search,
+  Filter,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import formatINR from "@/app/lib/helpers/formatPrice";
 
 const STATUS_COLORS = {
   pending: "bg-amber-100 text-amber-700",
@@ -32,6 +41,8 @@ const SORT_OPTIONS = [
   { value: "price_asc", label: "Price (Low → High)" },
 ];
 
+const ORDERS_PER_PAGE = 10;
+
 export default function OrdersAdminPage() {
   const [orders, setOrders] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -39,10 +50,9 @@ export default function OrdersAdminPage() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("date_desc");
   const [loading, setLoading] = useState(true);
-  const [fetchingMore, setFetchingMore] = useState(false);
-  const [cursor, setCursor] = useState(null);
-  const [hasMore, setHasMore] = useState(true);
-  const hasMoreRef = useRef(true);
+  const [allOrders, setAllOrders] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const searchRef = useRef(null);
 
   useEffect(() => {
@@ -50,44 +60,48 @@ export default function OrdersAdminPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  const loadOrders = useCallback(
-    async ({ reset } = { reset: false }) => {
-      if (reset) {
-        setCursor(null);
-        setOrders([]);
-        setHasMore(true);
-        hasMoreRef.current = true;
-      }
-      if (!hasMoreRef.current && !reset) return;
+  const loadOrders = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { success, data } = await getAllOrders({
+        status: statusFilter === "all" ? undefined : statusFilter,
+        search: search || undefined,
+        sort,
+      });
 
-      const initial = reset || !cursor;
-      initial ? setLoading(true) : setFetchingMore(true);
-      try {
-        const { success, data, nextCursor } = await getAllOrders({
-          status: statusFilter === "all" ? undefined : statusFilter,
-          search: search || undefined,
-          sort,
-          limit: 20,
-          cursor: reset ? null : cursor,
-        });
-        if (!success) throw new Error("Failed to fetch");
-        setOrders((prev) => (reset ? data : [...prev, ...data]));
-        setCursor(nextCursor || null);
-        const more = !!nextCursor;
-        setHasMore(more);
-        hasMoreRef.current = more;
-      } catch (e) {
-        toast.error(e.message || "Error loading orders");
-      } finally {
-        initial ? setLoading(false) : setFetchingMore(false);
+      if (!success) throw new Error("Failed to fetch");
+
+      setAllOrders(data);
+      setTotalPages(Math.ceil(data.length / ORDERS_PER_PAGE));
+
+      // Set the current page orders based on pagination
+      const startIndex = (currentPage - 1) * ORDERS_PER_PAGE;
+      const endIndex = startIndex + ORDERS_PER_PAGE;
+      setOrders(data.slice(startIndex, endIndex));
+
+      // Reset to page 1 if filter changes cause fewer pages
+      if (currentPage > Math.ceil(data.length / ORDERS_PER_PAGE)) {
+        setCurrentPage(1);
       }
-    },
-    [statusFilter, search, sort, cursor]
-  );
+    } catch (e) {
+      toast.error(e.message || "Error loading orders");
+    } finally {
+      setLoading(false);
+    }
+  }, [statusFilter, search, sort, currentPage]);
 
   useEffect(() => {
-    loadOrders({ reset: true });
+    loadOrders();
   }, [statusFilter, search, sort, loadOrders]);
+
+  // Update displayed orders when page changes
+  useEffect(() => {
+    if (allOrders.length > 0) {
+      const startIndex = (currentPage - 1) * ORDERS_PER_PAGE;
+      const endIndex = startIndex + ORDERS_PER_PAGE;
+      setOrders(allOrders.slice(startIndex, endIndex));
+    }
+  }, [currentPage, allOrders]);
 
   const handleStatusChange = async (id, newStatus) => {
     if (!confirm("Change status to " + newStatus + "?")) return;
@@ -97,16 +111,43 @@ export default function OrdersAdminPage() {
         o.id === id ? { ...o, status: newStatus, _updating: true } : o
       )
     );
+
+    setAllOrders((prev) =>
+      prev.map((o) =>
+        o.id === id ? { ...o, status: newStatus, _updating: true } : o
+      )
+    );
+
     const res = await updateOrderStatus(id, newStatus);
+
     if (!res.success) {
       toast.error("Update failed");
       setOrders(old);
+      setAllOrders((prev) =>
+        prev.map((o) =>
+          o.id === id
+            ? {
+                ...o,
+                status: old.find((oldOrder) => oldOrder.id === id)?.status,
+                _updating: false,
+              }
+            : o
+        )
+      );
     } else {
       toast.success("Status updated");
       setOrders((prev) =>
         prev.map((o) => (o.id === id ? { ...o, _updating: false } : o))
       );
+
+      setAllOrders((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, _updating: false } : o))
+      );
     }
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
   };
 
   return (
@@ -121,7 +162,7 @@ export default function OrdersAdminPage() {
           </div>
           <div className="flex gap-3">
             <button
-              onClick={() => loadOrders({ reset: true })}
+              onClick={() => loadOrders()}
               className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border bg-white text-sm hover:bg-neutral-50"
             >
               <RefreshCw className="w-4 h-4" />
@@ -219,7 +260,7 @@ export default function OrdersAdminPage() {
                       className="border-t border-neutral-100 hover:bg-neutral-50/60 transition"
                     >
                       <Td className="font-mono text-[11px] text-neutral-500">
-                        {idx + 1}
+                        {(currentPage - 1) * ORDERS_PER_PAGE + idx + 1}
                       </Td>
                       <Td className="font-mono">
                         <span className="font-semibold">
@@ -234,10 +275,7 @@ export default function OrdersAdminPage() {
                       </Td>
                       <Td>{o.items?.length || 0}</Td>
                       <Td className="font-medium">
-                        $
-                        {o.netAmount?.toFixed?.(2) ||
-                          o.amounts?.total?.toFixed?.(2) ||
-                          "0.00"}
+                        {formatINR(o.netAmount || o.amounts?.total || 0)}
                       </Td>
                       <Td>
                         <StatusSelect
@@ -270,9 +308,9 @@ export default function OrdersAdminPage() {
                               o.items
                                 .map(
                                   (it) =>
-                                    `${it.quantity}x ${it.name} ($${(
+                                    `${it.quantity}x ${it.name} (${formatINR(
                                       it.unitPrice * it.quantity
-                                    ).toFixed(2)})`
+                                    )})`
                                 )
                                 .join("\n")
                             )
@@ -287,16 +325,80 @@ export default function OrdersAdminPage() {
                 })}
             </tbody>
           </table>
-          {!loading && hasMore && (
-            <div className="p-4 border-t border-neutral-200">
-              <button
-                onClick={() => loadOrders({ reset: false })}
-                disabled={fetchingMore}
-                className="mx-auto flex items-center gap-2 h-10 px-5 rounded-lg border bg-white text-sm hover:bg-neutral-50 disabled:opacity-50"
-              >
-                {fetchingMore && <Loader2 className="w-4 h-4 animate-spin" />}
-                {fetchingMore ? "Loading..." : "Load More"}
-              </button>
+
+          {/* Pagination Controls */}
+          {!loading && totalPages > 1 && (
+            <div className="p-4 border-t border-neutral-200 flex justify-between items-center">
+              <div className="text-sm text-neutral-500">
+                Showing {(currentPage - 1) * ORDERS_PER_PAGE + 1}-
+                {Math.min(currentPage * ORDERS_PER_PAGE, allOrders.length)} of{" "}
+                {allOrders.length} orders
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="h-8 w-8 flex items-center justify-center rounded-md border bg-white text-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                {/* Page Numbers */}
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(
+                      (page) =>
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                    )
+                    .map((page, i, array) => {
+                      // Add ellipsis
+                      if (i > 0 && page > array[i - 1] + 1) {
+                        return (
+                          <React.Fragment key={`ellipsis-${page}`}>
+                            <span className="h-8 px-2 flex items-center justify-center text-neutral-400">
+                              ...
+                            </span>
+                            <button
+                              key={page}
+                              onClick={() => handlePageChange(page)}
+                              className={`h-8 w-8 flex items-center justify-center rounded-md border ${
+                                currentPage === page
+                                  ? "bg-neutral-900 text-white border-neutral-900"
+                                  : "bg-white text-neutral-600 hover:bg-neutral-50"
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          </React.Fragment>
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`h-8 w-8 flex items-center justify-center rounded-md border ${
+                            currentPage === page
+                              ? "bg-neutral-900 text-white border-neutral-900"
+                              : "bg-white text-neutral-600 hover:bg-neutral-50"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+                </div>
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="h-8 w-8 flex items-center justify-center rounded-md border bg-white text-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -312,6 +414,7 @@ function Th({ children }) {
     </th>
   );
 }
+
 function Td({ children, className = "" }) {
   return <td className={`px-4 py-3 align-top ${className}`}>{children}</td>;
 }
@@ -331,7 +434,6 @@ function StatusSelect({ value, onChange, loading }) {
           </option>
         ))}
       </select>
-      {/* <ChevronDown className="w-3.5 h-3.5 text-neutral-400 pointer-events-none absolute right-2 top-1/2 -translate-y-1/2" /> */}
       {loading && (
         <Loader2 className="w-3.5 h-3.5 animate-spin absolute right-8 top-1/2 -translate-y-1/2 text-neutral-400" />
       )}
