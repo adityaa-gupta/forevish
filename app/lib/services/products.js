@@ -98,80 +98,6 @@ const deleteImages = async (imageUrls) => {
   await Promise.all(deletePromises);
 };
 
-// Create a new product
-// export const createProduct = async (productData) => {
-//   ("Creating product with data:", productData);
-//   try {
-//     // Upload main images
-//     let mainImageUrls = [];
-//     if (productData.mainImages && productData.mainImages.length > 0) {
-//       mainImageUrls = await uploadImages(
-//         productData.mainImages,
-//         "product-images/main" // This will be stored in forevish bucket
-//       );
-//     }
-
-//     // Process variants and upload color-specific images
-//     const processedVariants = await Promise.all(
-//       productData.variants.map(async (variant) => {
-//         const processedColors = await Promise.all(
-//           variant.colors.map(async (color) => {
-//             let colorImageUrls = [];
-//             if (color.images && color.images.length > 0) {
-//               colorImageUrls = await uploadImages(
-//                 color.images,
-//                 `product-images/colors/${color.color.toLowerCase()}`
-//               );
-//             }
-
-//             return {
-//               color: color.color,
-//               stock: parseInt(color.stock),
-//               images: colorImageUrls,
-//             };
-//           })
-//         );
-
-//         return {
-//           size: variant.size,
-//           colors: processedColors,
-//         };
-//       })
-//     );
-
-//     // Create the product document
-//     const productDocument = {
-//       name: productData.name,
-//       description: productData.description,
-//       category: productData.category,
-//       price: parseFloat(productData.price),
-//       mainImages: mainImageUrls,
-//       variants: processedVariants,
-//       isActive: true,
-//       createdAt: serverTimestamp(),
-//       updatedAt: serverTimestamp(),
-//     };
-
-//     ("Creating product with data:", productDocument);
-
-//     const docRef = await addDoc(
-//       collection(db, COLLECTION_NAME),
-//       productDocument
-//     );
-
-//     return {
-//       success: true,
-//       id: docRef.id,
-//       message: "Product created successfully",
-//     };
-//   } catch (error) {
-//     console.error("Error creating product:", error);
-//     return {
-//       success: false,
-//       error: error.message,
-//     };
-//   }
-// };
 export const createProduct = async (productData) => {
   "Creating product with data:", productData;
   try {
@@ -346,89 +272,6 @@ export const getProductById = async (productId) => {
 // Update a product
 
 // ...existing code...
-
-// Update a product with image handling
-// export const updateProduct = async (productId, updateData) => {
-//   try {
-//     // Process main images
-//     if (updateData.mainImages) {
-//       const existingImages = updateData.mainImages.filter(
-//         (img) => typeof img === "string"
-//       );
-//       const newImages = updateData.mainImages.filter(
-//         (img) => img instanceof File
-//       );
-
-//       let newImageUrls = [];
-//       if (newImages.length > 0) {
-//         newImageUrls = await uploadImages(newImages, "product-images/main");
-//       }
-
-//       updateData.mainImages = [...existingImages, ...newImageUrls];
-//     }
-
-//     // Process variant images
-//     if (updateData.variants) {
-//       updateData.variants = await Promise.all(
-//         updateData.variants.map(async (variant) => {
-//           const processedColors = await Promise.all(
-//             variant.colors.map(async (color) => {
-//               if (color.images) {
-//                 const existingImages = color.images.filter(
-//                   (img) => typeof img === "string"
-//                 );
-//                 const newImages = color.images.filter(
-//                   (img) => img instanceof File
-//                 );
-
-//                 let newImageUrls = [];
-//                 if (newImages.length > 0) {
-//                   newImageUrls = await uploadImages(
-//                     newImages,
-//                     `product-images/colors/${color.color.toLowerCase()}`
-//                   );
-//                 }
-
-//                 return {
-//                   ...color,
-//                   stock: parseInt(color.stock),
-//                   images: [...existingImages, ...newImageUrls],
-//                 };
-//               }
-//               return {
-//                 ...color,
-//                 stock: parseInt(color.stock),
-//               };
-//             })
-//           );
-
-//           return {
-//             ...variant,
-//             colors: processedColors,
-//           };
-//         })
-//       );
-//     }
-
-//     const docRef = doc(db, COLLECTION_NAME, productId);
-//     await updateDoc(docRef, {
-//       ...updateData,
-//       price: parseFloat(updateData.price),
-//       updatedAt: serverTimestamp(),
-//     });
-
-//     return {
-//       success: true,
-//       message: "Product updated successfully",
-//     };
-//   } catch (error) {
-//     console.error("Error updating product:", error);
-//     return {
-//       success: false,
-//       error: error.message,
-//     };
-//   }
-// };
 export const updateProduct = async (productId, updateData) => {
   try {
     // === Handle Main Images ===
@@ -633,6 +476,66 @@ export const searchProducts = async (searchTerm) => {
     };
   } catch (error) {
     console.error("Error searching products:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
+
+export const reduceProductStock = async (
+  productId,
+  size,
+  color,
+  quantityToReduce
+) => {
+  try {
+    const docRef = doc(db, COLLECTION_NAME, productId);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      return { success: false, error: "Product not found" };
+    }
+
+    const product = docSnap.data();
+    let updatedVariants = product.variants;
+
+    // Find the correct variant and update the stock
+    let stockReduced = false;
+    updatedVariants = updatedVariants.map((variant) => {
+      if (variant.size === size) {
+        const updatedColors = variant.colors.map((c) => {
+          if (c.color === color) {
+            const newStock = c.stock - quantityToReduce;
+            if (newStock < 0) {
+              throw new Error("Insufficient stock");
+            }
+            stockReduced = true;
+            return { ...c, stock: newStock };
+          }
+          return c;
+        });
+        return { ...variant, colors: updatedColors };
+      }
+      return variant;
+    });
+
+    if (!stockReduced) {
+      throw new Error("Variant (size/color) not found");
+    }
+
+    // Update the product document with the new variants array
+    await updateDoc(docRef, {
+      variants: updatedVariants,
+      updatedAt: serverTimestamp(),
+    });
+
+    return {
+      success: true,
+      message: "Stock reduced successfully",
+    };
+  } catch (error) {
+    console.error("Error reducing stock:", error);
     return {
       success: false,
       error: error.message,

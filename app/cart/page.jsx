@@ -507,7 +507,7 @@ export default function CartPage() {
                 </div>
                 <div className="flex items-center space-x-3 text-sm text-gray-600">
                   <Clock className="w-5 h-5 text-purple-500" />
-                  <span>30-day return policy</span>
+                  <span>1-day return policy</span>
                 </div>
               </div>
 

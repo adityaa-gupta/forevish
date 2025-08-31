@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { Eye, EyeOff, Mail, Lock, User, Chrome } from "lucide-react";
-import { login } from "../_store/features/userSlice";
+import { login, updateUser } from "../_store/features/userSlice";
 import {
   signUpWithEmailAndPassword,
   signInWithEmailAndPassword as signInWithEmail,
   signInWithGoogle,
   resetPassword,
+  getUserProfile,
 } from "../lib/services/users";
 import toast from "react-hot-toast";
 
@@ -130,15 +131,42 @@ export default function AuthPage() {
         );
       }
 
+      console.log(result);
+
       if (result.success) {
+        // First, dispatch basic login with available user info
         dispatch(
           login({
             uid: result.user.uid,
             email: result.user.email,
             displayName: result.user.displayName,
             photoURL: result.user.photoURL,
+            role: "user", // Default role until we fetch from Firestore
           })
         );
+
+        // Then fetch complete user data from Firestore to get the actual role
+        try {
+          const userProfileResult = await getUserProfile(result.user.uid);
+          console.log("userProfileResult", userProfileResult);
+
+          if (userProfileResult.success) {
+            // Update user in Redux with complete profile data including correct role
+            dispatch(
+              updateUser({
+                role: userProfileResult.data.role || "user",
+                // You can include other profile fields here if needed
+                // phoneNumber: userProfileResult.data.phone,
+                // address: userProfileResult.data.address,
+              })
+            );
+
+            console.log("User role updated:", userProfileResult.data.role);
+          }
+        } catch (profileError) {
+          console.error("Error fetching user profile:", profileError);
+          // Still continue with login, just with default role
+        }
 
         toast.success(
           isLogin ? "Signed in successfully!" : "Account created successfully!",

@@ -18,6 +18,7 @@ import {
   limit,
   startAfter,
 } from "firebase/firestore";
+import { reduceProductStock } from "./products";
 // import { db } from "../firebase"; // <-- ensure this exists
 
 // import { db } from "./firebase";
@@ -49,6 +50,21 @@ async function sendOrderConfirmationEmail(orderData) {
  */
 export async function createOrder(orderData) {
   try {
+    for (const item of orderData.items) {
+      const stockUpdateResult = await reduceProductStock(
+        item.productId,
+        item.size,
+        item.color,
+        item.quantity
+      );
+
+      // If a stock update fails for any item, abort the entire order creation
+      if (!stockUpdateResult.success) {
+        throw new Error(
+          `Failed to update stock for product: ${item.name}. Reason: ${stockUpdateResult.error}`
+        );
+      }
+    }
     // Add timestamp
     const orderWithTimestamp = {
       ...orderData,

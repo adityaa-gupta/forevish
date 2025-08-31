@@ -62,8 +62,8 @@ export default function CheckoutPage() {
     [cartItems]
   );
   const shipping = subtotal > 100 ? 0 : 9.99;
-  const tax = +(subtotal * 0.07).toFixed(2);
-  const total = +(subtotal + shipping + tax).toFixed(2);
+  // const tax = +(subtotal * 0.07).toFixed(2);
+  const total = +(subtotal + shipping + 0).toFixed(2);
 
   const disabled =
     submitting ||
@@ -112,7 +112,6 @@ export default function CheckoutPage() {
         amounts: {
           subtotal,
           shipping,
-          tax,
           total,
         },
       };
@@ -272,7 +271,6 @@ export default function CheckoutPage() {
                 label="Shipping"
                 value={shipping === 0 ? "Free" : formatINR(shipping)}
               />
-              <Row label="Tax (7%)" value={formatINR(tax)} />
               <div className="pt-2 border-t border-neutral-200">
                 <Row label="Total" value={formatINR(total)} strong large />
               </div>
