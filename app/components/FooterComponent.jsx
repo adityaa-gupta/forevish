@@ -104,7 +104,7 @@ export default function FooterComponent() {
               title="Company"
               links={[
                 { href: "/about", label: "About Us" },
-                { href: "/blog", label: "Blog" },
+
                 { href: "/contact", label: "Contact" },
               ]}
             />
@@ -142,9 +142,6 @@ export default function FooterComponent() {
           <div className="flex flex-col gap-4 md:items-end">
             <SocialLinks />
             <div className="flex flex-wrap gap-4 text-[11px] text-neutral-500">
-              <Link href="/terms" className="hover:text-neutral-800">
-                Terms
-              </Link>
               <Link href="/privacy" className="hover:text-neutral-800">
                 Privacy
               </Link>
